@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chainlite",
-    version="0.1.0",
+    version="0.1.1",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
