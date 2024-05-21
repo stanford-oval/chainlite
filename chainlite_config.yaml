@@ -1,0 +1,89 @@
+# This configuration file defines the setup for how ChainLite calls various LLM APIs, and how it logs LLM inputs/outputs.
+# To configure it:
+# 1. Set directories containing the prompt files under the `prompt_dirs` section.
+# 2. Adjust logging settings and optionally specify which prompts you would like to skip in the `prompt_logging` section.
+# 3. Configure LLM endpoints under the `llm_endpoints` section, specifying the API base URL, version (if needed), API key (if needed), 
+#    and the mapping of model names to their respective deployment identifiers. The name on the left side of each mapping is "engine", the shorthand
+#    you can use in your code when calling llm_generation_chain(engine=...).
+#    The name on the right side is the "model", the specific name that LiteLLM expects: https://docs.litellm.ai/docs/providers
+#    Note that "engine" names should be unique within this file, but "model" names do not have to be unique.
+# 4. Follow the examples provided for Azure, OpenAI, Groq, Together, Mistral, and local models as needed, and remove unused llm endpoints.
+
+prompt_dirs: # List of directories containing prompt files, relative to the location of this file
+  - "./"  # Current directory
+
+litellm_set_verbose: false  # Verbose logging setting for LiteLLM
+prompt_logging:
+  - log_file: "./prompt_logs.jsonl"  # Path to the log file for prompt logs, relative to the location of this file
+    prompts_to_skip:
+      - "tests/test.prompt"  # List of prompts to exclude from logging, relative to the location of this file
+
+# Configuration for different LLM endpoints
+llm_endpoints:
+  # Example configuration for OpenAI models via Azure API
+  - api_base: https://<your azure opanai resource>.openai.azure.com  # Base URL for Azure OpenAI API
+    api_version: "2024-02-15-preview"  # API version for Azure OpenAI
+    api_key: "AZURE_OPENAI_API_KEY"  # API key for Azure OpenAI
+    engine_map:  # Mapping of model names to Azure deployment identifiers prepended by "azure/"
+      gpt-35-turbo: azure/gpt-35-turbo
+      gpt-35-turbo-16k: azure/gpt-35-turbo-16k
+      gpt-35-turbo-instruct: azure_text/gpt-35-turbo-instruct
+      gpt-4: azure/gpt-4
+      gpt-4-32k: azure/gpt-4-32k
+
+# Example of OpenAI models via openai.com
+  - api_base: https://api.openai.com/v1
+    api_key: OPENAI_API_KEY
+    engine_map: # OpenAI models don't need the "openai/" prefix
+      gpt-35-turbo: gpt-3.5-turbo-0125
+      gpt-35-turbo-instruct: gpt-3.5-turbo-instruct
+      gpt-4: gpt-4-turbo-2024-04-09
+      gpt-4o-may: gpt-4o-2024-05-13 # you can specify which version of the model you want
+      gpt-4o: gpt-4o # you can leave it to OpenAI to select the latest model version for you
+      gpt-4o2: gpt-4o # "model" names, which are on the right side of a mapping, do not need to be unique
+
+# Example of OpenAI fine-tuned model
+  - api_base: https://api.openai.com/v1
+    api_key: OPENAI_API_KEY
+    prompt_format: distilled
+    engine_map:
+      gpt-35-turbo-finetuned: ft:gpt-3.5-turbo-1106:<model_id>
+
+# Example of Groq API (groq.com)
+  - api_base: https://api.groq.com/openai/v1
+    api_key: GROQ_API_KEY
+    engine_map: # Has limited model availability, but a very fast inference on custom hardware
+      llama-3-70b-instruct: groq/llama3-70b-8192
+
+# Example of Together API (together.ai)
+  - api_key: TOGETHER_API_KEY
+    engine_map: # TODO non-instruct models don't work well because of LiteLLM's formatting issues, does not work with free accounts because of the 1 QPS limit
+      llama-2-70b: together_ai/togethercomputer/llama-2-70b
+      llama-3-70b-instruct: together_ai/meta-llama/Llama-3-70b-chat-hf
+      mixtral-8-7b: together_ai/mistralai/Mixtral-8x7B-v0.1
+      mixtral-8-7b-instruct: together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1
+      mistral-7b: together_ai/mistralai/Mistral-7B-v0.1
+
+# Example of Mistral API (mistral.ai)
+  - api_base: https://api.mistral.ai/v1 # https://docs.mistral.ai/platform/endpoints/
+    api_key: MISTRAL_API_KEY
+    engine_map:
+      mistral-large: mistral/mistral-large-latest
+      mistral-medium: mistral/mistral-medium-latest
+      mistral-small: mistral/mistral-small-latest
+      mistral-7b-instruct: mistral/open-mistral-7b
+      mixtral-8-7b-instruct: mistral/open-mixtral-8x7b
+
+# Example of local distilled models served via HuggingFace's text-generation-inference (https://github.com/huggingface/text-generation-inference/)
+# The name after huggingface/* does not matter and is unused
+  - api_base: http://127.0.0.1:5002
+    prompt_format: distilled
+    engine_map:
+      local_distilled: huggingface/local
+
+# Example of local models served via HuggingFace's text-generation-inference (https://github.com/huggingface/text-generation-inference/)
+# The name after huggingface/* does not matter and is unused
+  - api_base: http://127.0.0.1:5004
+    engine_map:
+      local_fewshot: huggingface/local
+

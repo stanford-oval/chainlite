@@ -11,7 +11,7 @@ async def test_llm_generate():
     load_config_from_file("./chainlite_config.yaml")
 
     response = await llm_generation_chain(
-        template_file="tests/test_template.prompt",
+        template_file="tests/test.prompt",
         engine="gpt-35-turbo",
         max_tokens=100,
     ).ainvoke({})

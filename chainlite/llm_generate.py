@@ -45,8 +45,10 @@ def pprint_chain(_dict: Any) -> Any:
     return _dict
 
 
-def write_prompt_logs_to_file():
-    with open(llm_config.prompt_log_file, "w") as f:
+def write_prompt_logs_to_file(log_file: Optional[str] = None):
+    if not log_file:
+        log_file = llm_config.prompt_log_file
+    with open(log_file, "w") as f:
         logs = [
             {
                 key: item[key]

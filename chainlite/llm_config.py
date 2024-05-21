@@ -24,11 +24,10 @@ prompt_log_file = None
 prompt_logs = {}
 prompts_to_skip_for_debugging = None
 local_engine_set = None
-should_log_prompts = False
 
 
 def load_config_from_file(config_file: str):
-    global all_llm_endpoints, prompt_dirs, prompt_log_file, prompts_to_skip_for_debugging, local_engine_set, should_log_prompts
+    global all_llm_endpoints, prompt_dirs, prompt_log_file, prompts_to_skip_for_debugging, local_engine_set
     # TODO raise errors if these values are not set, use pydantic v2
 
     with open(config_file, "r") as config_file:
@@ -41,7 +40,6 @@ def load_config_from_file(config_file: str):
     prompts_to_skip_for_debugging = set(
         config.get("promp_logging", {}).get("prompts_to_skip", [])
     )
-    should_log_prompts = config.get("promp_logging", {}).get("should_log", False)
 
     litellm.set_verbose = config.get("litellm_set_verbose", False)
 
