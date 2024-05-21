@@ -5,12 +5,13 @@ Functionality to work with .prompt files
 import json
 import logging
 import os
+from pprint import pprint
 import random
 import re
 from typing import Iterator, Optional, Any
 from uuid import UUID
 
-from  . import llm_config
+from . import llm_config
 from langchain_core.output_parsers import StrOutputParser
 
 from .load_prompt import load_fewshot_prompt_template
@@ -18,6 +19,7 @@ from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.outputs import LLMResult
 from langchain_core.messages import BaseMessage
+from langchain_core.runnables import chain
 
 from .utils import get_logger
 
@@ -34,6 +36,15 @@ logger = get_logger(__name__)
 partial_sentence_regex = re.compile(r'([\s\S]*?[.!?]"?)(?=(?:[^.!?]*$))')
 
 
+@chain
+def pprint_chain(_dict: Any) -> Any:
+    """
+    Print intermediate results for debugging
+    """
+    pprint(_dict)
+    return _dict
+
+
 def write_prompt_logs_to_file():
     with open(llm_config.prompt_log_file, "w") as f:
         logs = [
@@ -46,7 +57,8 @@ def write_prompt_logs_to_file():
                     "output",
                 ]  # specifies the sort order of keys in the output, for a better viewing experience
             }
-            for item in llm_config.prompt_logs.values() if item["template_name"] not in llm_config.prompts_to_skip_for_debugging
+            for item in llm_config.prompt_logs.values()
+            if item["template_name"] not in llm_config.prompts_to_skip_for_debugging
         ]
         f.write(
             json.dumps(
@@ -182,7 +194,7 @@ async def postprocess_generations(input_: Iterator[str]) -> Iterator[str]:
 #     return generation_output
 
 
-def llm_generate(
+def llm_generation_chain(
     template_file: str,
     engine: str,
     max_tokens: int,
