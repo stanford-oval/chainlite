@@ -49,26 +49,24 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None):
     if not log_file:
         log_file = llm_config.prompt_log_file
     with open(log_file, "w") as f:
-        logs = [
-            {
-                key: item[key]
-                for key in [
-                    "template_name",
-                    "instruction",
-                    "input",
-                    "output",
-                ]  # specifies the sort order of keys in the output, for a better viewing experience
-            }
-            for item in llm_config.prompt_logs.values()
-            if item["template_name"] not in llm_config.prompts_to_skip_for_debugging
-        ]
-        f.write(
-            json.dumps(
-                logs,
-                indent=2,
+        for item in llm_config.prompt_logs.values():
+            if item["template_name"] in llm_config.prompts_to_skip_for_debugging:
+                continue
+            f.write(
+                json.dumps(
+                    {
+                        key: item[key]
+                        for key in [
+                            "template_name",
+                            "instruction",
+                            "input",
+                            "output",
+                        ]  # specifies the sort order of keys in the output, for a better viewing experience
+                    }
+                ),
                 ensure_ascii=False,
             )
-        )
+            f.write("\n")
 
 
 class PromptLogHandler(AsyncCallbackHandler):
