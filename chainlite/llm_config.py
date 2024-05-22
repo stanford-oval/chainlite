@@ -34,11 +34,11 @@ def load_config_from_file(config_file: str):
         config = yaml.unsafe_load(config_file)
 
     prompt_dirs = config.get("prompt_dirs", ["./"])
-    prompt_log_file = config.get("promp_logging", {}).get(
+    prompt_log_file = config.get("prompt_logging", {}).get(
         "log_file", "./prompt_logs.jsonl"
     )
     prompts_to_skip_for_debugging = set(
-        config.get("promp_logging", {}).get("prompts_to_skip", [])
+        config.get("prompt_logging", {}).get("prompts_to_skip", [])
     )
 
     litellm.set_verbose = config.get("litellm_set_verbose", False)

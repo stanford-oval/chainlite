@@ -62,9 +62,9 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None):
                             "input",
                             "output",
                         ]  # specifies the sort order of keys in the output, for a better viewing experience
-                    }
-                ),
-                ensure_ascii=False,
+                    },
+                    ensure_ascii=False,
+                )
             )
             f.write("\n")
 
