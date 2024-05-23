@@ -54,7 +54,10 @@ get_total_cost() # returns the total cost of all LLM API calls you have made. Re
 
 ```markdown
 # instruction
-Tell a joke about the input topic.
+Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.
+
+# distillation instruction
+Tell a joke.
 
 # input
 Physics
@@ -80,7 +83,13 @@ async def tell_joke(topic: str):
     ).ainvoke({"topic": topic})
     print(response)
 
-asyncio.run(tell_joke("Life as a PhD student"))
+asyncio.run(tell_joke("Life as a PhD student")) # prints "Why did the PhD student bring a ladder to the library?\nTo take their research to the next level!"
+write_prompt_logs_to_file("llm_input_outputs.jsonl")
+```
+
+Then you will have `llm_input_outputs.jsonl`:
+```json
+{"template_name": "joke.prompt", "instruction": "Tell a joke.", "input": "Life as a PhD student", "output": "Why did the PhD student bring a ladder to the library?\nTo take their research to the next level!"}
 ```
 
 ## Configuration

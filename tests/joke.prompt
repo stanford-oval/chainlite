@@ -1,0 +1,15 @@
+# instruction
+Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.
+
+# distillation instruction
+Tell a joke.
+
+# input
+Physics
+
+# output
+Why don't scientists trust atoms?
+Because they make up everything!
+
+# input
+{{ topic }}
