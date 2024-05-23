@@ -19,7 +19,7 @@ from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.outputs import LLMResult
 from langchain_core.messages import BaseMessage
-from langchain_core.runnables import chain
+from langchain_core.runnables import chain, Runnable
 
 from .utils import get_logger
 
@@ -199,11 +199,30 @@ def llm_generation_chain(
     engine: str,
     max_tokens: int,
     temperature: float = 0.0,
-    stop_tokens=None,
+    stop_tokens: Optional[list[str]] = None,
     top_p: float = 0.9,
     postprocess: bool = False,
     bind_prompt_values: dict = {},
-):
+) -> Runnable:
+    """
+    Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
+
+    Parameters:
+        template_file (str): The path to the generation template file. Must be a .prompt file.
+        engine (str): The language model engine to employ. An engine represents the left-hand value of an `engine_map` in the ChainLite config file.
+        max_tokens (int): The upper limit of tokens the LLM can generate.
+        temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
+        stop_tokens (list[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
+        top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
+        postprocess (bool, optional): If true, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
+        bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
+
+    Returns:
+        Runnable: The language model generation chain
+
+    Raises:
+        IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
+    """
     # Decide which LLM resource to send this request to.
     potential_llm_resources = [
         resource

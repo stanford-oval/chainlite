@@ -3,9 +3,9 @@
 # 1. Set directories containing the prompt files under the `prompt_dirs` section.
 # 2. Adjust logging settings and optionally specify which prompts you would like to skip in the `prompt_logging` section.
 # 3. Configure LLM endpoints under the `llm_endpoints` section, specifying the API base URL, version (if needed), API key (if needed), 
-#    and the mapping of model names to their respective deployment identifiers. The name on the left side of each mapping is "engine", the shorthand
+#    and the mapping of model names to their respective deployment identifiers. The name on the left-hand side of each mapping is "engine", the shorthand
 #    you can use in your code when calling llm_generation_chain(engine=...).
-#    The name on the right side is the "model", the specific name that LiteLLM expects: https://docs.litellm.ai/docs/providers
+#    The name on the right side-hand is the "model", the specific name that LiteLLM expects: https://docs.litellm.ai/docs/providers
 #    Note that "engine" names should be unique within this file, but "model" names do not have to be unique.
 # 4. Follow the examples provided for Azure, OpenAI, Groq, Together, Mistral, and local models as needed, and remove unused llm endpoints.
 
@@ -40,7 +40,7 @@ llm_endpoints:
       gpt-4: gpt-4-turbo-2024-04-09
       gpt-4o-may: gpt-4o-2024-05-13 # you can specify which version of the model you want
       gpt-4o: gpt-4o # you can leave it to OpenAI to select the latest model version for you
-      gpt-4o2: gpt-4o # "model" names, which are on the right side of a mapping, do not need to be unique
+      gpt-4o2: gpt-4o # "model" names, which are on the right side-hand of a mapping, do not need to be unique
 
 # Example of OpenAI fine-tuned model
   - api_base: https://api.openai.com/v1
