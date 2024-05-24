@@ -28,10 +28,8 @@ prompt_block_identifiers = {
 jinja_environment = None  # Global variable to hold the Jinja2 environment
 
 
-def initialize_jinja_environment(loader_paths=None):
+def initialize_jinja_environment(loader_paths):
     global jinja_environment
-    if loader_paths is None:
-        loader_paths = ["./", "./pipelines/", "./pipelines/prompts/"]
 
     loader = FileSystemLoader(loader_paths)
     jinja_environment = Environment(
@@ -39,10 +37,6 @@ def initialize_jinja_environment(loader_paths=None):
         trim_blocks=True,
         lstrip_blocks=True,
     )
-
-
-# Initialize the environment with default paths
-initialize_jinja_environment()
 
 
 def set_custom_template_paths(paths):

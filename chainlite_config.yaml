@@ -11,6 +11,7 @@
 
 prompt_dirs: # List of directories containing prompt files, relative to the location of this file
   - "./"  # Current directory
+  - "./tests/"
 
 litellm_set_verbose: false  # Verbose logging setting for LiteLLM
 prompt_logging:

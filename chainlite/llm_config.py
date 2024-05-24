@@ -7,6 +7,8 @@ from langchain.cache import RedisCache
 from langchain.globals import set_llm_cache
 import redis
 
+from .load_prompt import set_custom_template_paths
+
 # TODO move cache setting to the config file
 # We do not use LiteLLM's cache, use LangChain's instead
 # litellm.enable_cache(type="redis", url="redis://localhost:6379")
@@ -91,6 +93,8 @@ def load_config_from_file(config_file: str):
             all_configured_engines.append(engine)
             if model.startswith("huggingface/"):
                 local_engine_set.add(engine)
+
+    set_custom_template_paths(prompt_dirs)
 
 
 # this code is not safe to use with multiprocessing, only multithreading

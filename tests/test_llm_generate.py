@@ -13,7 +13,7 @@ load_config_from_file("./chainlite_config.yaml")
 async def test_llm_generate():
 
     response = await llm_generation_chain(
-        template_file="tests/test.prompt",
+        template_file="test.prompt", # prompt path relative to one of the paths specified in `prompt_dirs`
         engine="gpt-35-turbo",
         max_tokens=100,
     ).ainvoke({})
