@@ -7,7 +7,7 @@ from langchain.cache import RedisCache
 from langchain.globals import set_llm_cache
 import redis
 
-from .load_prompt import set_custom_template_paths
+from .load_prompt import initialize_jinja_environment
 
 # TODO move cache setting to the config file
 # We do not use LiteLLM's cache, use LangChain's instead
@@ -29,7 +29,7 @@ class GlobalVars:
     local_engine_set = None
 
 
-def load_config_from_file(config_file: str):
+def load_config_from_file(config_file: str) -> None:
     with open(config_file, "r") as config_file:
         config = yaml.unsafe_load(config_file)
 
@@ -91,14 +91,14 @@ def load_config_from_file(config_file: str):
             if model.startswith("huggingface/"):
                 GlobalVars.local_engine_set.add(engine)
 
-    set_custom_template_paths(GlobalVars.prompt_dirs)
+    initialize_jinja_environment(GlobalVars.prompt_dirs)
 
 
 # this code is not safe to use with multiprocessing, only multithreading
 thread_lock = threading.Lock()
 
 
-total_cost = 0  # in USD
+total_cost = 0.0  # in USD
 
 
 def add_to_total_cost(amount: float):
@@ -107,7 +107,13 @@ def add_to_total_cost(amount: float):
         total_cost += amount
 
 
-def get_total_cost():
+def get_total_cost() -> float:
+    """
+    This function is used to get the total LLM cost accumulated so far
+
+    Returns:
+        float: The total cost accumulated so far in USD.
+    """
     global total_cost
     return total_cost
 

@@ -39,16 +39,6 @@ def initialize_jinja_environment(loader_paths):
     )
 
 
-def set_custom_template_paths(paths):
-    """
-    Allows the user to set custom paths for the Jinja2 FileSystemLoader.
-
-    Args:
-        paths (list of str): List of directory paths to use for loading templates.
-    """
-    initialize_jinja_environment(paths)
-
-
 @lru_cache()
 def load_template_file(template_file: str) -> str:
     """
