@@ -96,6 +96,9 @@ Then you will have `llm_input_outputs.jsonl`:
 
 The `chainlite_config.yaml` file allows you to customize the behavior of ChainLite. Modify the file to set your preferences for the LangChain and LiteLLM integrations.
 
+## Syntax Highlighting 
+If you are using VSCode, you can install [this extension](https://marketplace.visualstudio.com/items?itemName=samuelcolvin.jinjahtml) and switch `.prompt` files to use the "Jinja Markdown" syntax highlighting.
+
 ## Contributing
 
 We welcome contributions! Please follow these steps to contribute:
