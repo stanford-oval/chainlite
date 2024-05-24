@@ -8,11 +8,12 @@ import os
 from pprint import pprint
 import random
 import re
-from typing import Iterator, Optional, Any
+from typing import AsyncIterator, Optional, Any
 from uuid import UUID
 
-from . import llm_config
 from langchain_core.output_parsers import StrOutputParser
+
+from chainlite.llm_config import GlobalVars
 
 from .load_prompt import load_fewshot_prompt_template
 from langchain_community.chat_models import ChatLiteLLM
@@ -45,12 +46,21 @@ def pprint_chain(_dict: Any) -> Any:
     return _dict
 
 
+def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:
+    return os.path.basename(template_name_1) == os.path.basename(template_name_2)
+
+
 def write_prompt_logs_to_file(log_file: Optional[str] = None):
     if not log_file:
-        log_file = llm_config.prompt_log_file
+        log_file = GlobalVars.prompt_log_file
     with open(log_file, "w") as f:
-        for item in llm_config.prompt_logs.values():
-            if item["template_name"] in llm_config.prompts_to_skip_for_debugging:
+        for item in GlobalVars.prompt_logs.values():
+            should_skip = False
+            for t in GlobalVars.prompts_to_skip_for_debugging:
+                if is_same_prompt(t, item["template_name"]):
+                    should_skip = True
+                    break
+            if should_skip:
                 continue
             f.write(
                 json.dumps(
@@ -88,11 +98,11 @@ class PromptLogHandler(AsyncCallbackHandler):
             else "<no distillation instruction is specified for this prompt>"
         )
         llm_input = messages[0][-1].content
-        if run_id not in llm_config.prompt_logs:
-            llm_config.prompt_logs[run_id] = {}
-        llm_config.prompt_logs[run_id]["instruction"] = distillation_instruction
-        llm_config.prompt_logs[run_id]["input"] = llm_input
-        llm_config.prompt_logs[run_id]["template_name"] = metadata["template_name"]
+        if run_id not in GlobalVars.prompt_logs:
+            GlobalVars.prompt_logs[run_id] = {}
+        GlobalVars.prompt_logs[run_id]["instruction"] = distillation_instruction
+        GlobalVars.prompt_logs[run_id]["input"] = llm_input
+        GlobalVars.prompt_logs[run_id]["template_name"] = metadata["template_name"]
 
     async def on_llm_end(
         self,
@@ -106,13 +116,13 @@ class PromptLogHandler(AsyncCallbackHandler):
         """Run when LLM ends running."""
         run_id = str(run_id)
         llm_output = response.generations[0][0].text
-        llm_config.prompt_logs[run_id]["output"] = llm_output
+        GlobalVars.prompt_logs[run_id]["output"] = llm_output
 
 
 prompt_log_handler = PromptLogHandler()
 
 
-async def strip(input_: Iterator[str]) -> Iterator[str]:
+async def strip(input_: AsyncIterator[str]) -> AsyncIterator[str]:
     """
     Strips whitespace from a string, but supports streaming in a LangChain chain
     """
@@ -138,7 +148,7 @@ def extract_until_last_full_sentence(text):
         return ""
 
 
-async def postprocess_generations(input_: Iterator[str]) -> Iterator[str]:
+async def postprocess_generations(input_: AsyncIterator[str]) -> AsyncIterator[str]:
     buffer = ""
     yielded = False
     async for chunk in input_:
@@ -226,7 +236,7 @@ def llm_generation_chain(
     # Decide which LLM resource to send this request to.
     potential_llm_resources = [
         resource
-        for resource in llm_config.all_llm_endpoints
+        for resource in GlobalVars.all_llm_endpoints
         if engine in resource["engine_map"]
     ]
     if len(potential_llm_resources) == 0:
@@ -245,7 +255,7 @@ def llm_generation_chain(
         model_kwargs["api_version"] = llm_resource["api_version"]
 
     # TODO remove these if LiteLLM fixes their HuggingFace TGI interface
-    if engine in llm_config.local_engine_set:
+    if engine in GlobalVars.local_engine_set:
         if temperature > 0:
             model_kwargs["do_sample"] = True
         else:

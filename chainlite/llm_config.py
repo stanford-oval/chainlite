@@ -20,44 +20,43 @@ litellm.drop_params = (
 )
 
 
-all_llm_endpoints = None
-prompt_dirs = None
-prompt_log_file = None
-prompt_logs = {}
-prompts_to_skip_for_debugging = None
-local_engine_set = None
+class GlobalVars:
+    prompt_logs = {}
+    all_llm_endpoints = None
+    prompt_dirs = None
+    prompt_log_file = None
+    prompts_to_skip_for_debugging = None
+    local_engine_set = None
 
 
 def load_config_from_file(config_file: str):
-    global all_llm_endpoints, prompt_dirs, prompt_log_file, prompts_to_skip_for_debugging, local_engine_set
-    # TODO raise errors if these values are not set, use pydantic v2
-
     with open(config_file, "r") as config_file:
         config = yaml.unsafe_load(config_file)
 
-    prompt_dirs = config.get("prompt_dirs", ["./"])
-    prompt_log_file = config.get("prompt_logging", {}).get(
+    # TODO raise errors if these values are not set, use pydantic v2
+    GlobalVars.prompt_dirs = config.get("prompt_dirs", ["./"])
+    GlobalVars.prompt_log_file = config.get("prompt_logging", {}).get(
         "log_file", "./prompt_logs.jsonl"
     )
-    prompts_to_skip_for_debugging = set(
+    GlobalVars.prompts_to_skip_for_debugging = set(
         config.get("prompt_logging", {}).get("prompts_to_skip", [])
     )
 
     litellm.set_verbose = config.get("litellm_set_verbose", False)
 
-    all_llm_endpoints = config.get("llm_endpoints", [])
-    for a in all_llm_endpoints:
+    GlobalVars.all_llm_endpoints = config.get("llm_endpoints", [])
+    for a in GlobalVars.all_llm_endpoints:
         if "api_key" in a:
             a["api_key"] = os.getenv(a["api_key"])
 
-    all_llm_endpoints = [
+    GlobalVars.all_llm_endpoints = [
         a
-        for a in all_llm_endpoints
+        for a in GlobalVars.all_llm_endpoints
         if "api_key" not in a or (a["api_key"] is not None and len(a["api_key"]) > 0)
     ]  # remove resources for which we don't have a key
 
     # tell LiteLLM how we want to map the messages to a prompt string for these non-chat models
-    for endpoint in all_llm_endpoints:
+    for endpoint in GlobalVars.all_llm_endpoints:
         if "prompt_format" in endpoint:
             if endpoint["prompt_format"] == "distilled":
                 # {instruction}\n\n{input}\n
@@ -85,16 +84,14 @@ def load_config_from_file(config_file: str):
                 raise ValueError(
                     f"Unsupported prompt format: {endpoint['prompt_format']}"
                 )
-    all_configured_engines = []
-    local_engine_set = set()
+    GlobalVars.local_engine_set = set()
 
-    for endpoint in all_llm_endpoints:
+    for endpoint in GlobalVars.all_llm_endpoints:
         for engine, model in endpoint["engine_map"].items():
-            all_configured_engines.append(engine)
             if model.startswith("huggingface/"):
-                local_engine_set.add(engine)
+                GlobalVars.local_engine_set.add(engine)
 
-    set_custom_template_paths(prompt_dirs)
+    set_custom_template_paths(GlobalVars.prompt_dirs)
 
 
 # this code is not safe to use with multiprocessing, only multithreading

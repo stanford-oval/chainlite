@@ -17,6 +17,7 @@ setup(
         "langchain-core==0.1.50",
         "langchain-text-splitters==0.0.1",
         "langgraph==0.0.41",
+        "grandalf", # to visualize LangGraph graphs
         "langsmith==0.1.53",
         "litellm==1.35.38",
         "pydantic>=2.5",

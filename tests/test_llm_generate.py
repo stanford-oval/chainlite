@@ -1,6 +1,7 @@
 import pytest
 
 from chainlite import llm_generation_chain, load_config_from_file
+from chainlite.llm_config import GlobalVars
 from chainlite.llm_generate import write_prompt_logs_to_file
 from chainlite.utils import get_logger
 
@@ -11,6 +12,12 @@ load_config_from_file("./chainlite_config.yaml")
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
+    # Check that the config file has been loaded properly
+    assert GlobalVars.all_llm_endpoints
+    assert GlobalVars.prompt_dirs
+    assert GlobalVars.prompt_log_file
+    assert GlobalVars.prompts_to_skip_for_debugging
+    assert GlobalVars.local_engine_set
 
     response = await llm_generation_chain(
         template_file="test.prompt", # prompt path relative to one of the paths specified in `prompt_dirs`
