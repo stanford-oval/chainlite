@@ -28,6 +28,7 @@ from .utils import get_logger
 logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
 logging.getLogger("LiteLLM Proxy").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = get_logger(__name__)
 
 # This regex pattern aims to capture up through the last '.', '!', '?',
@@ -234,6 +235,10 @@ def llm_generation_chain(
         IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
     """
     # Decide which LLM resource to send this request to.
+    if not GlobalVars.all_llm_endpoints:
+        logger.error(
+            "No LLM API found. Make sure confugration and API_KEY files are set correctly, and that load_config_from_file() is called before using any other function."
+        )
     potential_llm_resources = [
         resource
         for resource in GlobalVars.all_llm_endpoints

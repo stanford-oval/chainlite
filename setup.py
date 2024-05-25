@@ -19,7 +19,7 @@ setup(
         "langgraph==0.0.41",
         "grandalf", # to visualize LangGraph graphs
         "langsmith==0.1.53",
-        "litellm==1.35.38",
+        "litellm==1.37.19",
         "pydantic>=2.5",
         "redis[hiredis]",
     ],

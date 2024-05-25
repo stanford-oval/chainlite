@@ -3,7 +3,7 @@ import yaml
 import os
 import os
 import litellm
-from langchain.cache import RedisCache
+from langchain_community.cache import RedisCache
 from langchain.globals import set_llm_cache
 import redis
 
@@ -13,7 +13,8 @@ from .load_prompt import initialize_jinja_environment
 # We do not use LiteLLM's cache, use LangChain's instead
 # litellm.enable_cache(type="redis", url="redis://localhost:6379")
 redis_client = redis.Redis.from_url("redis://localhost:6379")
-set_llm_cache(RedisCache(redis_client))
+redis_cache = RedisCache(redis_client)
+set_llm_cache(redis_cache)
 
 litellm.drop_params = (
     True  # Drops unsupported parameters for non-OpenAI APIs like TGI and Together.ai
