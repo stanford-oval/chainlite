@@ -3,9 +3,9 @@ import yaml
 import os
 import os
 import litellm
-from langchain_community.cache import RedisCache
+from langchain_community.cache import AsyncRedisCache
 from langchain.globals import set_llm_cache
-import redis
+import redis.asyncio as redis
 
 from .load_prompt import initialize_jinja_environment
 
@@ -13,7 +13,7 @@ from .load_prompt import initialize_jinja_environment
 # We do not use LiteLLM's cache, use LangChain's instead
 # litellm.enable_cache(type="redis", url="redis://localhost:6379")
 redis_client = redis.Redis.from_url("redis://localhost:6379")
-redis_cache = RedisCache(redis_client)
+redis_cache = AsyncRedisCache(redis_client)
 set_llm_cache(redis_cache)
 
 litellm.drop_params = (
