@@ -63,6 +63,9 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None):
                     break
             if should_skip:
                 continue
+            if "output" not in item:
+                # happens if the code crashes in the middle of a an LLM call
+                continue
             f.write(
                 json.dumps(
                     {
