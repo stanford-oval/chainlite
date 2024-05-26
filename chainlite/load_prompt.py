@@ -52,6 +52,8 @@ def load_template_file(template_file: str, keep_indentation: bool) -> str:
     raw_template = re.sub(jinja2_comment_pattern, "", raw_template)
     if not keep_indentation:
         raw_template = "\n".join([line.strip() for line in raw_template.split("\n")])
+    else:
+        raw_template = "\n".join([line.rstrip() for line in raw_template.split("\n")])
     raw_template = re.sub(
         r"%}\s*", "%}", raw_template
     )  # remove the white space after {% for ... %} tags etc.
