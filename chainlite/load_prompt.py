@@ -40,7 +40,7 @@ def initialize_jinja_environment(loader_paths):
 
 
 @lru_cache()
-def load_template_file(template_file: str) -> str:
+def load_template_file(template_file: str, keep_indentation: bool) -> str:
     """
     This function is here just so that we can cache the templates and not have to read from disk every time.
     Also removes comment blocks and white space at the beginning and end of each line. These are usually added to make prompt templates more readable.
@@ -50,7 +50,8 @@ def load_template_file(template_file: str) -> str:
         jinja_environment, template_file
     )[0]
     raw_template = re.sub(jinja2_comment_pattern, "", raw_template)
-    raw_template = "\n".join([line.strip() for line in raw_template.split("\n")])
+    if not keep_indentation:
+        raw_template = "\n".join([line.strip() for line in raw_template.split("\n")])
     raw_template = re.sub(
         r"%}\s*", "%}", raw_template
     )  # remove the white space after {% for ... %} tags etc.
@@ -187,9 +188,9 @@ def _prompt_blocks_to_chat_messages(
 
 
 def load_fewshot_prompt_template(
-    template_file: str, is_distilled: bool
+    template_file: str, is_distilled: bool, keep_indentation: bool
 ) -> tuple[ChatPromptTemplate, str | None]:
-    fp = load_template_file(template_file)
+    fp = load_template_file(template_file, keep_indentation)
     blocks = _split_prompt_to_blocks(fp)
     # pprint(blocks)
     chat_prompt_template, distillation_instruction = _prompt_blocks_to_chat_messages(

@@ -215,6 +215,7 @@ def llm_generation_chain(
     temperature: float = 0.0,
     stop_tokens: Optional[list[str]] = None,
     top_p: float = 0.9,
+    keep_indentation: bool = False,
     postprocess: bool = False,
     bind_prompt_values: dict = {},
 ) -> Runnable:
@@ -228,6 +229,7 @@ def llm_generation_chain(
         temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
         stop_tokens (list[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
         top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
+        keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file
         postprocess (bool, optional): If true, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
         bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
 
@@ -280,7 +282,7 @@ def llm_generation_chain(
         "prompt_format" in llm_resource and llm_resource["prompt_format"] == "distilled"
     )
     prompt, distillation_instruction = load_fewshot_prompt_template(
-        template_file, is_distilled=is_distilled
+        template_file, is_distilled=is_distilled, keep_indentation=keep_indentation
     )
 
     llm = ChatLiteLLM(
