@@ -1,8 +1,8 @@
-<div class="title" style="text-align: center;">
+<div align="center">
     <img src="assets/logo.png" alt="ChainLite Logo" style="width: 150px; height: auto;">
     <h1>ChainLite</h1>
 </div>
-<div class="content">
+<div>
     <p>ChainLite combines LangChain and LiteLLM to provide an easy-to-use and customizable interface for large language model applications.</p>
     <p style="font-size: smaller;"><sup>*</sup> Logo is generated using DALL·E 3.</p>
 </div>
