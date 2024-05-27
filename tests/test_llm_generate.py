@@ -8,7 +8,7 @@ from chainlite.utils import get_logger
 logger = get_logger(__name__)
 
 
-load_config_from_file("./chainlite_config.yaml")
+# load_config_from_file("./llm_config.yaml")
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():

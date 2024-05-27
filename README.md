@@ -1,9 +1,11 @@
-# chainlite
-LangChain + LiteLLM that works
-
-# ChainLite
-
-ChainLite combines LangChain and LiteLLM to provide an easy-to-use and customizable interface for large language model applications.
+<div class="title" style="text-align: center;">
+    <img src="assets/logo.png" alt="ChainLite Logo" style="width: 150px; height: auto;">
+    <h1>ChainLite</h1>
+</div>
+<div class="content">
+    <p>ChainLite combines LangChain and LiteLLM to provide an easy-to-use and customizable interface for large language model applications.</p>
+    <p style="font-size: smaller;"><sup>*</sup> Logo is generated using DALL·E 3.</p>
+</div>
 
 
 ## Installation
@@ -17,14 +19,15 @@ To install ChainLite, use the following steps:
     ```
 
 
-1. Copy `chainlite_config.yaml` to your project and follow the instructions there to update it with your own configuration.
+1. Copy `llm_config.yaml` to your project and follow the instructions there to update it with your own configuration.
 
 ## Usage
 
-Before you can use Chainlite, you need to call the following function to load the configuration file:
+Before you can use Chainlite, you can call the following function to load the configuration file. If you don't, ChainLite will use `llm_config.yaml` in the current directory (the directory you are running your script from) by default.
+
 ```python
 from chainlite import load_config_file
-load_config_file("./chainlite_config.yaml") # The path should be relative to the directory you run the script from, usually the root directory of your project
+load_config_file("./llm_config.yaml") # The path should be relative to the directory you run the script from, usually the root directory of your project
 ```
 
 Make sure the corresponding API keys are set in environemnt variables with the name you specified in the configuration file, e.g. `OPENAI_API_KEY` etc.

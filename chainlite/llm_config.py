@@ -98,7 +98,7 @@ def load_config_from_file(config_file: str) -> None:
 # this code is not safe to use with multiprocessing, only multithreading
 thread_lock = threading.Lock()
 
-
+load_config_from_file("./llm_config.yaml")
 total_cost = 0.0  # in USD
 
 
