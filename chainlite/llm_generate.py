@@ -215,6 +215,7 @@ def llm_generation_chain(
     temperature: float = 0.0,
     stop_tokens: Optional[list[str]] = None,
     top_p: float = 0.9,
+    output_json: bool = False,
     keep_indentation: bool = False,
     postprocess: bool = False,
     bind_prompt_values: dict = {},
@@ -229,7 +230,9 @@ def llm_generation_chain(
         temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
         stop_tokens (list[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
         top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
-        keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file
+        output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
+            For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
+        keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
         postprocess (bool, optional): If true, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
         bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
 
@@ -284,6 +287,8 @@ def llm_generation_chain(
     prompt, distillation_instruction = load_fewshot_prompt_template(
         template_file, is_distilled=is_distilled, keep_indentation=keep_indentation
     )
+    if output_json:
+        model_kwargs["response_format"] = {"type": "json_object"}
 
     llm = ChatLiteLLM(
         model_kwargs=model_kwargs,
