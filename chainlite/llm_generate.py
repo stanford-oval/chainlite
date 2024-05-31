@@ -5,25 +5,25 @@ Functionality to work with .prompt files
 import json
 import logging
 import os
-from pprint import pprint
 import random
 import re
-from typing import AsyncIterator, Optional, Any
+from pprint import pprint
+from typing import Any, AsyncIterator, Optional
 from uuid import UUID
 
+from langchain_community.chat_models import ChatLiteLLM
+from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.outputs import LLMResult
+from langchain_core.runnables import Runnable, chain
+
+from tqdm.auto import tqdm
 
 from chainlite.llm_config import GlobalVars
 
 from .load_prompt import load_fewshot_prompt_template
-from langchain_community.chat_models import ChatLiteLLM
-from langchain_core.callbacks import AsyncCallbackHandler
-from langchain_core.outputs import LLMResult
-from langchain_core.messages import BaseMessage
-from langchain_core.runnables import chain, Runnable
-
 from .utils import get_logger
-
 
 logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
@@ -123,6 +123,25 @@ class PromptLogHandler(AsyncCallbackHandler):
         GlobalVars.prompt_logs[run_id]["output"] = llm_output
 
 
+class ProgbarCallback(AsyncCallbackHandler):
+    def __init__(self, desc: str, total: int = None):
+        super().__init__()
+        self.count = 0
+        self.progress_bar = tqdm(total=total, desc=desc)  # define a progress bar
+
+    # Override on_llm_end method. This is called after every response from LLM
+    def on_llm_end(
+        self,
+        response: LLMResult,
+        *,
+        run_id: UUID,
+        parent_run_id: UUID | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        self.count += 1
+        self.progress_bar.update(1)
+
+
 prompt_log_handler = PromptLogHandler()
 
 
@@ -218,6 +237,7 @@ def llm_generation_chain(
     output_json: bool = False,
     keep_indentation: bool = False,
     postprocess: bool = False,
+    progress_bar_desc: Optional[str] = None,
     bind_prompt_values: dict = {},
 ) -> Runnable:
     """
@@ -233,7 +253,8 @@ def llm_generation_chain(
         output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
             For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
         keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
-        postprocess (bool, optional): If true, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
+        postprocess (bool, optional): If True, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
+        progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
         bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
 
     Returns:
@@ -290,6 +311,10 @@ def llm_generation_chain(
     if output_json:
         model_kwargs["response_format"] = {"type": "json_object"}
 
+    callbacks = [prompt_log_handler]
+    if progress_bar_desc:
+        cb = ProgbarCallback(progress_bar_desc)
+        callbacks.append(cb)
     llm = ChatLiteLLM(
         model_kwargs=model_kwargs,
         api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
@@ -302,7 +327,7 @@ def llm_generation_chain(
             "distillation_instruction": distillation_instruction,
             "template_name": os.path.basename(template_file),
         },  # for logging to file
-        callbacks=[prompt_log_handler],
+        callbacks=callbacks,
     )
 
     # for variable, value in bind_prompt_values.keys():

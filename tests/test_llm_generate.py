@@ -2,13 +2,14 @@ import pytest
 
 from chainlite import llm_generation_chain, load_config_from_file
 from chainlite.llm_config import GlobalVars
-from chainlite.llm_generate import write_prompt_logs_to_file
+from chainlite.llm_generate import ProgbarCallback, write_prompt_logs_to_file
 from chainlite.utils import get_logger
 
 logger = get_logger(__name__)
 
 
 # load_config_from_file("./llm_config.yaml")
+
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
@@ -20,7 +21,7 @@ async def test_llm_generate():
     assert GlobalVars.local_engine_set
 
     response = await llm_generation_chain(
-        template_file="test.prompt", # prompt path relative to one of the paths specified in `prompt_dirs`
+        template_file="test.prompt",  # prompt path relative to one of the paths specified in `prompt_dirs`
         engine="gpt-4o",
         max_tokens=100,
     ).ainvoke({})
@@ -37,7 +38,22 @@ async def test_readme_example():
         template_file="tests/joke.prompt",
         engine="gpt-35-turbo",
         max_tokens=100,
+        temperature=0.1,
+        progress_bar_desc="test1",
     ).ainvoke({"topic": "Life as a PhD student"})
     logger.info(response)
 
-    write_prompt_logs_to_file("llm_input_outputs.jsonl")
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_batching():
+    response = await llm_generation_chain(
+        template_file="tests/joke.prompt",
+        engine="gpt-35-turbo",
+        max_tokens=100,
+        temperature=0.1,
+        progress_bar_desc="test2",
+    ).abatch([{"topic": "Life as a PhD student"}] * 10)
+    assert len(response) == 10
+    logger.info(response)

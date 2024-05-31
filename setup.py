@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chainlite",
-    version="0.1.11",
+    version="0.1.12",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -24,7 +24,7 @@ setup(
         "redis[hiredis]",
     ],
     extras_require={
-        "dev": ["invoke", "pytest", "pytest-asyncio", "setuptools", "wheel", "twine"],
+        "dev": ["invoke", "pytest", "pytest-asyncio", "setuptools", "wheel", "twine", "isort"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

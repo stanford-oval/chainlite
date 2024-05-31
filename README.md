@@ -10,7 +10,7 @@
 
 ## Installation
 
-To install ChainLite, use the following steps:
+ChainLite has been tested with Python 3.10. To install, do the following:
 
 
 1. Install ChainLite via pip:
