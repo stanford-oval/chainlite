@@ -1,6 +1,7 @@
 from functools import lru_cache
 from datetime import datetime
 import re
+from typing import List, Tuple
 from zoneinfo import ZoneInfo  # Python 3.9 and later
 from langchain_core.prompts import (
     HumanMessagePromptTemplate,
@@ -83,11 +84,11 @@ def add_template_constants(
     return chat_prompt_template
 
 
-def find_all_substrings(string, substring) -> list[str]:
+def find_all_substrings(string, substring) -> List[str]:
     return [match.start() for match in re.finditer(re.escape(substring), string)]
 
 
-def _split_prompt_to_blocks(prompt: str) -> list[tuple[str, str]]:
+def _split_prompt_to_blocks(prompt: str) -> List[Tuple[str, str]]:
     block_indices = []
     for identifier in prompt_block_identifiers:
         for alternative in prompt_block_identifiers[identifier]:
@@ -138,8 +139,8 @@ def _split_prompt_to_blocks(prompt: str) -> list[tuple[str, str]]:
 
 
 def _prompt_blocks_to_chat_messages(
-    blocks: list[tuple[str, str]], is_distilled: bool
-) -> tuple[ChatPromptTemplate, str | None]:
+    blocks: List[Tuple[str, str]], is_distilled: bool
+) -> Tuple[ChatPromptTemplate, str | None]:
     message_prompt_templates = []
     distillation_instruction = None
     if is_distilled:
@@ -171,27 +172,33 @@ def _prompt_blocks_to_chat_messages(
         ]
     chat_prompt_template = ChatPromptTemplate.from_messages(message_prompt_templates)
     chat_prompt_template = add_template_constants(chat_prompt_template)
-    if distillation_instruction is not None:
-        distillation_instruction = (
-            (
-                add_template_constants(
-                    ChatPromptTemplate.from_template(
-                        distillation_instruction, template_format="jinja2"
-                    )
+    if distillation_instruction is None:
+        # if distillation instruction is not provided, will default to instruction
+        block_type, distillation_instruction = tuple(
+            [b for b in blocks if b[0] == "instruction"][0]
+        )
+        assert block_type == "instruction"
+
+    distillation_instruction = (
+        (
+            add_template_constants(
+                ChatPromptTemplate.from_template(
+                    distillation_instruction, template_format="jinja2"
                 )
             )
-            .invoke({})
-            .messages[0]
-            .content
-        )  # distillation prompts should not contain any variables other than template constants like {{today}}
-        # print("distillation_instruction = ", distillation_instruction)
+        )
+        .invoke({})
+        .messages[0]
+        .content
+    )  # distillation prompts should not contain any variables other than template constants like {{today}}
+    # print("distillation_instruction = ", distillation_instruction)
 
     return chat_prompt_template, distillation_instruction
 
 
 def load_fewshot_prompt_template(
     template_file: str, is_distilled: bool, keep_indentation: bool
-) -> tuple[ChatPromptTemplate, str | None]:
+) -> Tuple[ChatPromptTemplate, str | None]:
     fp = load_template_file(template_file, keep_indentation)
     blocks = _split_prompt_to_blocks(fp)
     # pprint(blocks)
