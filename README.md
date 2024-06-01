@@ -42,8 +42,12 @@ llm_generation_chain(
     temperature: float = 0.0,
     stop_tokens=None,
     top_p: float = 0.9,
+    output_json: bool = False,
+    keep_indentation: bool = False,
     postprocess: bool = False,
-    bind_prompt_values: dict = {},
+    progress_bar_desc: Optional[str] = None,
+    additional_postprocessing_runnable: Runnable = None,
+    bind_prompt_values: Dict = {},
 ) # returns a LangChain chain the accepts inputs and returns a string as output
 load_config_from_file(config_file: str)
 pprint_chain() # can be used to print inputs or outputs of a LangChain chain.
@@ -58,6 +62,7 @@ get_total_cost() # returns the total cost of all LLM API calls you have made. Re
 ```markdown
 # instruction
 Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.
+{# This is a comment, and will be ignored anywhere in a .prompt file. Other than block definitions and comments, '#' is allowed and is treated as a normal character.  #}
 
 # distillation instruction
 Tell a joke.
