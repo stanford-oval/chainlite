@@ -8,7 +8,7 @@ import os
 import random
 import re
 from pprint import pprint
-from typing import Any, AsyncIterator, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 from uuid import UUID
 
 from langchain_community.chat_models import ChatLiteLLM
@@ -17,7 +17,6 @@ from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.outputs import LLMResult
 from langchain_core.runnables import Runnable, chain
-
 from tqdm.auto import tqdm
 
 from chainlite.llm_config import GlobalVars
@@ -83,54 +82,60 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None):
             f.write("\n")
 
 
-class PromptLogHandler(AsyncCallbackHandler):
+class ChainLogHandler(AsyncCallbackHandler):
     async def on_chat_model_start(
         self,
-        serialized: dict[str, Any],
-        messages: list[list[BaseMessage]],
+        serialized: Dict[str, Any],
+        messages: List[List[BaseMessage]],
         *,
         run_id: UUID,
         parent_run_id: Optional[UUID] = None,
-        tags: Optional[list[str]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> Any:
-        run_id = str(run_id)
+        run_id = str(parent_run_id)
         distillation_instruction = (
             metadata["distillation_instruction"]
             if metadata["distillation_instruction"]
             else "<no distillation instruction is specified for this prompt>"
         )
         llm_input = messages[0][-1].content
+        if messages[0][-1].type == "system":
+            # it means the prompt did not have an `# input` block, and only has an instruction block
+            llm_input = ""
         if run_id not in GlobalVars.prompt_logs:
             GlobalVars.prompt_logs[run_id] = {}
         GlobalVars.prompt_logs[run_id]["instruction"] = distillation_instruction
         GlobalVars.prompt_logs[run_id]["input"] = llm_input
         GlobalVars.prompt_logs[run_id]["template_name"] = metadata["template_name"]
 
-    async def on_llm_end(
+    async def on_chain_end(
         self,
         response: LLMResult,
         *,
         run_id: UUID,
         parent_run_id: Optional[UUID] = None,
-        tags: Optional[list[str]] = None,
+        tags: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         """Run when LLM ends running."""
         run_id = str(run_id)
-        llm_output = response.generations[0][0].text
-        GlobalVars.prompt_logs[run_id]["output"] = llm_output
+        if not parent_run_id:
+            # this is the final response in the entire chain
+            GlobalVars.prompt_logs[run_id][
+                "output"
+            ] = response  # overwrite the LLM response
 
 
-class ProgbarCallback(AsyncCallbackHandler):
-    def __init__(self, desc: str, total: int = None):
+class ProgbarHandler(AsyncCallbackHandler):
+    def __init__(self, desc: str):
         super().__init__()
         self.count = 0
-        self.progress_bar = tqdm(total=total, desc=desc)  # define a progress bar
+        self.desc = desc
 
     # Override on_llm_end method. This is called after every response from LLM
-    def on_llm_end(
+    async def on_llm_end(
         self,
         response: LLMResult,
         *,
@@ -138,11 +143,12 @@ class ProgbarCallback(AsyncCallbackHandler):
         parent_run_id: UUID | None = None,
         **kwargs: Any,
     ) -> Any:
+        if self.count == 0:
+            self.progress_bar = tqdm(
+                total=None, desc=self.desc
+            )  # define a progress bar
         self.count += 1
         self.progress_bar.update(1)
-
-
-prompt_log_handler = PromptLogHandler()
 
 
 async def strip(input_: AsyncIterator[str]) -> AsyncIterator[str]:
@@ -232,13 +238,14 @@ def llm_generation_chain(
     engine: str,
     max_tokens: int,
     temperature: float = 0.0,
-    stop_tokens: Optional[list[str]] = None,
+    stop_tokens: Optional[List[str]] = None,
     top_p: float = 0.9,
     output_json: bool = False,
     keep_indentation: bool = False,
     postprocess: bool = False,
     progress_bar_desc: Optional[str] = None,
-    bind_prompt_values: dict = {},
+    additional_postprocessing_runnable: Runnable = None,
+    bind_prompt_values: Dict = {},
 ) -> Runnable:
     """
     Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
@@ -248,14 +255,15 @@ def llm_generation_chain(
         engine (str): The language model engine to employ. An engine represents the left-hand value of an `engine_map` in the ChainLite config file.
         max_tokens (int): The upper limit of tokens the LLM can generate.
         temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
-        stop_tokens (list[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
+        stop_tokens (List[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
         top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
         output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
             For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
         keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
         postprocess (bool, optional): If True, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
         progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
-        bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
+        additional_postprocessing_runnable (Runnable, optional): If provided, will be applied to the output of LLM generation, and the final output will be logged
+        bind_prompt_values (Dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
 
     Returns:
         Runnable: The language model generation chain
@@ -311,9 +319,9 @@ def llm_generation_chain(
     if output_json:
         model_kwargs["response_format"] = {"type": "json_object"}
 
-    callbacks = [prompt_log_handler]
+    callbacks = []
     if progress_bar_desc:
-        cb = ProgbarCallback(progress_bar_desc)
+        cb = ProgbarHandler(progress_bar_desc)
         callbacks.append(cb)
     llm = ChatLiteLLM(
         model_kwargs=model_kwargs,
@@ -323,10 +331,6 @@ def llm_generation_chain(
         model_name=model,
         max_tokens=max_tokens,
         temperature=temperature,
-        metadata={
-            "distillation_instruction": distillation_instruction,
-            "template_name": os.path.basename(template_file),
-        },  # for logging to file
         callbacks=callbacks,
     )
 
@@ -339,4 +343,12 @@ def llm_generation_chain(
     else:
         llm_generation_chain = llm_generation_chain | strip
 
-    return llm_generation_chain
+    if additional_postprocessing_runnable:
+        llm_generation_chain = llm_generation_chain | additional_postprocessing_runnable
+    return llm_generation_chain.with_config(
+        callbacks=[ChainLogHandler()],
+        metadata={
+            "distillation_instruction": distillation_instruction,
+            "template_name": os.path.basename(template_file),
+        },
+    )  # for logging to file

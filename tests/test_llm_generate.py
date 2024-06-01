@@ -2,7 +2,7 @@ import pytest
 
 from chainlite import llm_generation_chain, load_config_from_file
 from chainlite.llm_config import GlobalVars
-from chainlite.llm_generate import ProgbarCallback, write_prompt_logs_to_file
+from chainlite.llm_generate import ProgbarHandler, write_prompt_logs_to_file
 from chainlite.utils import get_logger
 
 logger = get_logger(__name__)
