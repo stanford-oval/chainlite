@@ -16,7 +16,7 @@ jinja2_comment_pattern = re.compile(r"{#.*?#}", re.DOTALL)
 prompt_block_identifiers = {
     "input": ["# input\n", "# Input\n", "# INPUT\n"],
     "output": ["# output\n", "# Output\n", "# OUTPUT\n"],
-    "instruction": ["# instruction\n", "# Instruction\n", "# Instruction\n"],
+    "instruction": ["# instruction\n", "# Instruction\n", "# INSTRUCTION\n"],
     "distillation_instruction": [
         "# distillation instruction\n",
         "# distillation_instruction\n",
