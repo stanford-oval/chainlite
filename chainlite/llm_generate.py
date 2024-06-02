@@ -123,9 +123,7 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(run_id)
         if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
-            GlobalVars.prompt_logs[run_id][
-                "output"
-            ] = response
+            GlobalVars.prompt_logs[run_id]["output"] = response
 
 
 class ProgbarHandler(AsyncCallbackHandler):
@@ -145,7 +143,11 @@ class ProgbarHandler(AsyncCallbackHandler):
     ) -> Any:
         if self.count == 0:
             self.progress_bar = tqdm(
-                total=None, desc=self.desc
+                total=None,
+                desc=self.desc,
+                unit=" LLM Calls",
+                bar_format="{desc}: {n_fmt}{unit} ({rate_fmt})",
+                mininterval=0 
             )  # define a progress bar
         self.count += 1
         self.progress_bar.update(1)
@@ -283,7 +285,6 @@ def llm_generation_chain(
             f"Could not find any matching engines for {engine}. Please check that llm_config.yaml is configured correctly and that the API key is set in the terminal before running this script."
         )
     llm_resource = random.choice(potential_llm_resources)
-
 
     model = llm_resource["engine_map"][engine]
 
