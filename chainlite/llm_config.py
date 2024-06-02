@@ -21,8 +21,45 @@ litellm.drop_params = (
 )
 
 
+class ThreadSafeDict:
+    def __init__(self):
+        self._dict = {}
+        self._lock = threading.Lock()
+
+    def __setitem__(self, key, value):
+        with self._lock:
+            self._dict[key] = value
+
+    def __getitem__(self, key):
+        with self._lock:
+            return self._dict[key]
+
+    def __delitem__(self, key):
+        with self._lock:
+            del self._dict[key]
+
+    def get(self, key, default=None):
+        with self._lock:
+            return self._dict.get(key, default)
+
+    def __contains__(self, key):
+        with self._lock:
+            return key in self._dict
+
+    def items(self):
+        with self._lock:
+            return list(self._dict.items())
+        
+    def keys(self):
+        with self._lock:
+            return list(self._dict.keys())
+
+    def values(self):
+        with self._lock:
+            return list(self._dict.values())
+
 class GlobalVars:
-    prompt_logs = {}
+    prompt_logs = ThreadSafeDict()
     all_llm_endpoints = None
     prompt_dirs = None
     prompt_log_file = None
@@ -95,7 +132,7 @@ def load_config_from_file(config_file: str) -> None:
     initialize_jinja_environment(GlobalVars.prompt_dirs)
 
 
-# this code is not safe to use with multiprocessing, only multithreading
+# this code is NOT safe to use with multiprocessing, only multithreading
 thread_lock = threading.Lock()
 
 load_config_from_file("./llm_config.yaml")

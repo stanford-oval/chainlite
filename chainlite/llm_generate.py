@@ -121,11 +121,11 @@ class ChainLogHandler(AsyncCallbackHandler):
     ) -> None:
         """Run when LLM ends running."""
         run_id = str(run_id)
-        if not parent_run_id:
+        if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
             GlobalVars.prompt_logs[run_id][
                 "output"
-            ] = response  # overwrite the LLM response
+            ] = response
 
 
 class ProgbarHandler(AsyncCallbackHandler):
@@ -160,10 +160,8 @@ async def strip(input_: AsyncIterator[str]) -> AsyncIterator[str]:
         try:
             current_chunk = await input_.__anext__()
         except StopAsyncIteration as e:
-            # print("yielding ", prev_chunk)
             yield prev_chunk.rstrip()
             break
-        # print("yielding ", prev_chunk)
         yield prev_chunk
         prev_chunk = current_chunk
 
@@ -184,7 +182,6 @@ async def postprocess_generations(input_: AsyncIterator[str]) -> AsyncIterator[s
         buffer += chunk
         until_last_full_sentence = extract_until_last_full_sentence(buffer)
         if len(until_last_full_sentence) > 0:
-            # print("yielding ", buffer[: len(until_last_full_sentence)])
             yield buffer[: len(until_last_full_sentence)]
             yielded = True
             buffer = buffer[len(until_last_full_sentence) :]
@@ -287,7 +284,6 @@ def llm_generation_chain(
         )
     llm_resource = random.choice(potential_llm_resources)
 
-    # print(llm_resource)
 
     model = llm_resource["engine_map"][engine]
 
