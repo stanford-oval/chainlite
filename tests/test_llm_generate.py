@@ -1,10 +1,13 @@
 import pytest
-
-from chainlite import llm_generation_chain, load_config_from_file
-from chainlite.llm_config import GlobalVars
-from chainlite.llm_generate import write_prompt_logs_to_file
-from chainlite.utils import get_logger
 from langchain_core.runnables import RunnableLambda
+
+from chainlite import (
+    get_logger,
+    llm_generation_chain,
+    load_config_from_file,
+    write_prompt_logs_to_file,
+)
+from chainlite.llm_config import GlobalVars
 
 logger = get_logger(__name__)
 

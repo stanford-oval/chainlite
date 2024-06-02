@@ -1,7 +1,9 @@
-from invoke import task
 import os
-from chainlite.utils import get_logger
+
 import redis
+from invoke import task
+
+from chainlite.utils import get_logger
 
 logger = get_logger(__name__)
 
