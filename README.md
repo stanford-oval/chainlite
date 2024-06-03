@@ -30,7 +30,7 @@ from chainlite import load_config_file
 load_config_file("./llm_config.yaml") # The path should be relative to the directory you run the script from, usually the root directory of your project
 ```
 
-Make sure the corresponding API keys are set in environemnt variables with the name you specified in the configuration file, e.g. `OPENAI_API_KEY` etc.
+Make sure the corresponding API keys are set in environment variables with the name you specified in the configuration file, e.g. `OPENAI_API_KEY` etc.
 
 Then you can use the following functions in your code:
 
