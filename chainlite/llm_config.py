@@ -113,7 +113,7 @@ def load_config_from_file(config_file: str) -> None:
                             "assistant": {
                                 "pre_message": "",
                                 "post_message": "\n",
-                            },  # this will be ignored since "simple" format only supports one output turn
+                            },  # this will be ignored since "distilled" formats only support one output turn
                         },
                         initial_prompt_value="",
                         final_prompt_value="",

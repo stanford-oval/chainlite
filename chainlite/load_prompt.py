@@ -166,7 +166,7 @@ def _prompt_blocks_to_chat_messages(
         # only keep the distillation_instruction and the last input
         assert distillation_instruction is not None
         message_prompt_templates = [
-            SystemMessagePromptTemplate.from_template(block, template_format="jinja2"),
+            SystemMessagePromptTemplate.from_template(distillation_instruction, template_format="jinja2"),
             message_prompt_templates[-1],
         ]
     chat_prompt_template = ChatPromptTemplate.from_messages(message_prompt_templates)

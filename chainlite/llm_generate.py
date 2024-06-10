@@ -245,6 +245,7 @@ def llm_generation_chain(
     progress_bar_desc: Optional[str] = None,
     additional_postprocessing_runnable: Runnable = None,
     bind_prompt_values: Dict = {},
+    force_skip_cache=False
 ) -> Runnable:
     """
     Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
@@ -320,11 +321,13 @@ def llm_generation_chain(
     if progress_bar_desc:
         cb = ProgbarHandler(progress_bar_desc)
         callbacks.append(cb)
+    
+    should_cache = (temperature==0) and not force_skip_cache
     llm = ChatLiteLLM(
         model_kwargs=model_kwargs,
         api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
         api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
-        cache=(temperature == 0),
+        cache=should_cache,
         model_name=model,
         max_tokens=max_tokens,
         temperature=temperature,
