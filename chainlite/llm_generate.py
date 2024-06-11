@@ -20,6 +20,7 @@ from langchain_core.runnables import Runnable, chain
 from tqdm.auto import tqdm
 
 from chainlite.llm_config import GlobalVars
+from chainlite.mock_llm import MockLLM
 
 from .load_prompt import load_fewshot_prompt_template
 from .utils import get_logger
@@ -147,7 +148,9 @@ class ProgbarHandler(AsyncCallbackHandler):
                 desc=self.desc,
                 unit=" LLM Calls",
                 bar_format="{desc}: {n_fmt}{unit} ({rate_fmt})",
-                mininterval=0 
+                mininterval=0,
+                position=0,
+                leave=True,
             )  # define a progress bar
         self.count += 1
         self.progress_bar.update(1)
@@ -245,7 +248,8 @@ def llm_generation_chain(
     progress_bar_desc: Optional[str] = None,
     additional_postprocessing_runnable: Runnable = None,
     bind_prompt_values: Dict = {},
-    force_skip_cache=False
+    force_skip_cache: bool = False,
+    mock: bool = False,
 ) -> Runnable:
     """
     Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
@@ -274,7 +278,7 @@ def llm_generation_chain(
     # Decide which LLM resource to send this request to.
     if not GlobalVars.all_llm_endpoints:
         logger.error(
-            "No LLM API found. Make sure confugration and API_KEY files are set correctly, and that load_config_from_file() is called before using any other function."
+            "No LLM API found. Make sure configuration and API_KEY files are set correctly, and that load_config_from_file() is called before using any other function."
         )
     potential_llm_resources = [
         resource
@@ -321,18 +325,30 @@ def llm_generation_chain(
     if progress_bar_desc:
         cb = ProgbarHandler(progress_bar_desc)
         callbacks.append(cb)
-    
-    should_cache = (temperature==0) and not force_skip_cache
-    llm = ChatLiteLLM(
-        model_kwargs=model_kwargs,
-        api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
-        api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
-        cache=should_cache,
-        model_name=model,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        callbacks=callbacks,
-    )
+
+    should_cache = (temperature == 0) and not force_skip_cache
+    if mock:
+        llm = MockLLM(
+            model_kwargs=model_kwargs,
+            api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
+            api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
+            cache=should_cache,
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            callbacks=callbacks,
+        )
+    else:
+        llm = ChatLiteLLM(
+            model_kwargs=model_kwargs,
+            api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
+            api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
+            cache=should_cache,
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            callbacks=callbacks,
+        )
 
     # for variable, value in bind_prompt_values.keys():
     if len(bind_prompt_values) > 0:

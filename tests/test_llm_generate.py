@@ -14,6 +14,13 @@ logger = get_logger(__name__)
 
 # load_config_from_file("./llm_config.yaml")
 
+chain_inputs = [
+    {"topic": "Ice cream"},
+    {"topic": "Cats"},
+    {"topic": "Dogs"},
+    {"topic": "Rabbits"},
+]
+
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
@@ -50,12 +57,6 @@ async def test_readme_example():
 
 @pytest.mark.asyncio(scope="session")
 async def test_batching():
-    chain_inputs = [
-        {"topic": "Ice cream"},
-        {"topic": "Cats"},
-        {"topic": "Dogs"},
-        {"topic": "Rabbits"},
-    ]
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
         engine="gpt-35-turbo",
@@ -65,4 +66,21 @@ async def test_batching():
     ).abatch(chain_inputs)
     assert len(response) == len(chain_inputs)
 
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_mock_llm():
+    c = llm_generation_chain(
+        template_file="tests/joke.prompt",
+        engine="gpt-35-turbo",
+        max_tokens=100,
+        temperature=0.1,
+        progress_bar_desc="test2",
+        mock=True,
+    )
+    output = await c.abatch(chain_inputs)
+    assert output == [""] * len(chain_inputs)
+    output = await c.ainvoke(chain_inputs[0])
+    assert output == ""
     write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
