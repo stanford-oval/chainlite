@@ -7,6 +7,7 @@ import logging
 import os
 import random
 import re
+from datetime import datetime
 from pprint import pprint
 from typing import Any, AsyncIterator, Dict, List, Optional
 from uuid import UUID
@@ -51,10 +52,14 @@ def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:
     return os.path.basename(template_name_1) == os.path.basename(template_name_2)
 
 
-def write_prompt_logs_to_file(log_file: Optional[str] = None):
+def write_prompt_logs_to_file(log_file: Optional[str] = None, append_to_file: bool = False):
     if not log_file:
         log_file = GlobalVars.prompt_log_file
-    with open(log_file, "w") as f:
+
+    mode = "w"
+    if append_to_file:
+        mode = "a"
+    with open(log_file, mode) as f:
         for item in GlobalVars.prompt_logs.values():
             should_skip = False
             for t in GlobalVars.prompts_to_skip_for_debugging:
@@ -66,11 +71,14 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None):
             if "output" not in item:
                 # happens if the code crashes in the middle of a an LLM call
                 continue
+            datetime_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            item["datetime"] = datetime_str
             f.write(
                 json.dumps(
                     {
                         key: item[key]
                         for key in [
+                            "datetime",
                             "template_name",
                             "instruction",
                             "input",
