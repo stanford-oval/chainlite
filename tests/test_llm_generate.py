@@ -52,6 +52,24 @@ async def test_llm_generate():
 
 
 @pytest.mark.asyncio(scope="session")
+async def test_string_prompts():
+    response = await llm_generation_chain(
+        template_file="",
+        template_blocks=[
+            ("instruction", "X=1, Y=6."),
+            ("input", "what is X?"),
+            ("output", "The value of X is one"),
+            ("input", "what is {{ variable }}?"),
+        ],
+        engine=test_engine,
+        max_tokens=10,
+        temperature=0,
+    ).ainvoke({"variable": "Y"})
+    assert "The value of Y is six" in response
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
 async def test_readme_example():
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",

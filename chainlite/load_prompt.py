@@ -217,13 +217,13 @@ def _prompt_blocks_to_chat_messages(
 
 
 def load_fewshot_prompt_template(
-    template_file: str, is_distilled: bool, keep_indentation: bool
+    template_file: str, template_blocks:list[tuple[str]], is_distilled: bool, keep_indentation: bool
 ) -> Tuple[ChatPromptTemplate, str | None]:
-    fp = load_template_file(template_file, keep_indentation)
-    blocks = _split_prompt_to_blocks(fp)
-    # pprint(blocks)
+    if not template_blocks:
+        fp = load_template_file(template_file, keep_indentation)
+        template_blocks = _split_prompt_to_blocks(fp)
     chat_prompt_template, distillation_instruction = _prompt_blocks_to_chat_messages(
-        blocks, is_distilled
+        template_blocks, is_distilled
     )
 
     return chat_prompt_template, distillation_instruction

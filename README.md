@@ -43,6 +43,7 @@ llm_generation_chain(
     stop_tokens=None,
     top_p: float = 0.9,
     output_json: bool = False,
+    template_blocks: list[tuple[str]]=None,
     keep_indentation: bool = False,
     postprocess: bool = False,
     progress_bar_desc: Optional[str] = None,
@@ -99,6 +100,8 @@ Then you will have `llm_input_outputs.jsonl`:
 ```json
 {"template_name": "joke.prompt", "instruction": "Tell a joke.", "input": "Life as a PhD student", "output": "Why did the PhD student bring a ladder to the library?\nTo take their research to the next level!"}
 ```
+
+For more examples, see `tests/test_llm_generate.py`
 
 ## Configuration
 

@@ -277,6 +277,7 @@ def llm_generation_chain(
     stop_tokens: Optional[List[str]] = None,
     top_p: float = 0.9,
     output_json: bool = False,
+    template_blocks: list[tuple[str]] = None,
     keep_indentation: bool = False,
     postprocess: bool = False,
     progress_bar_desc: Optional[str] = None,
@@ -297,6 +298,7 @@ def llm_generation_chain(
         top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
         output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
             For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
+        template_blocks: If provided, will use this instead of `template_file`. The format is [(role, string)] where role is one of "instruction", "input", "output"
         keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
         postprocess (bool, optional): If True, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
         progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
@@ -309,6 +311,7 @@ def llm_generation_chain(
     Raises:
         IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
     """
+
     # Decide which LLM resource to send this request to.
     if not GlobalVars.all_llm_endpoints:
         logger.error(
@@ -349,8 +352,12 @@ def llm_generation_chain(
     is_distilled = (
         "prompt_format" in llm_resource and llm_resource["prompt_format"] == "distilled"
     )
+
     prompt, distillation_instruction = load_fewshot_prompt_template(
-        template_file, is_distilled=is_distilled, keep_indentation=keep_indentation
+        template_file,
+        template_blocks,
+        is_distilled=is_distilled,
+        keep_indentation=keep_indentation,
     )
     if output_json:
         model_kwargs["response_format"] = {"type": "json_object"}
