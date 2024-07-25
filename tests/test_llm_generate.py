@@ -21,6 +21,7 @@ chain_inputs = [
     {"topic": "Rabbits"},
 ]
 
+test_engine="gpt-4o-mini"
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
@@ -33,7 +34,7 @@ async def test_llm_generate():
 
     response = await llm_generation_chain(
         template_file="test.prompt",  # prompt path relative to one of the paths specified in `prompt_dirs`
-        engine="gpt-35-turbo",
+        engine=test_engine,
         max_tokens=100,
     ).ainvoke({})
     # logger.info(response)
@@ -47,7 +48,7 @@ async def test_llm_generate():
 async def test_readme_example():
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
-        engine="gpt-35-turbo",
+        engine=test_engine,
         max_tokens=100,
         temperature=0.1,
         progress_bar_desc="test1",
@@ -59,7 +60,7 @@ async def test_readme_example():
 async def test_batching():
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
-        engine="gpt-35-turbo",
+        engine=test_engine,
         max_tokens=100,
         temperature=0.1,
         progress_bar_desc="test2",
@@ -73,7 +74,7 @@ async def test_batching():
 async def test_mock_llm():
     c = llm_generation_chain(
         template_file="tests/joke.prompt",
-        engine="gpt-35-turbo",
+        engine=test_engine,
         max_tokens=100,
         temperature=0.1,
         progress_bar_desc="test2",

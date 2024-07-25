@@ -39,6 +39,7 @@ llm_endpoints:
       gpt-35-turbo: gpt-3.5-turbo-0125
       gpt-35-turbo-instruct: gpt-3.5-turbo-instruct
       gpt-4: gpt-4-turbo-2024-04-09
+      gpt-4o-mini: gpt-4o-mini
       gpt-4o-may: gpt-4o-2024-05-13 # you can specify which version of the model you want
       gpt-4o: gpt-4o # you can leave it to OpenAI to select the latest model version for you
       gpt-4o2: gpt-4o # "model" names, which are on the right side-hand of a mapping, do not need to be unique
