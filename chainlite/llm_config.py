@@ -65,7 +65,17 @@ class GlobalVars:
     prompt_log_file = None
     prompts_to_skip_for_debugging = None
     local_engine_set = None
+    
+    @classmethod
+    def get_all_configured_engines(cls):
+        all_engines = set()
+        for endpoint in cls.all_llm_endpoints:
+            all_engines.update(endpoint["engine_map"].keys())
+        return all_engines
 
+
+def get_all_configured_engines():
+    return GlobalVars.get_all_configured_engines()
 
 def load_config_from_file(config_file: str) -> None:
     with open(config_file, "r") as config_file:

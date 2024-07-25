@@ -6,6 +6,7 @@ from chainlite import (
     llm_generation_chain,
     load_config_from_file,
     write_prompt_logs_to_file,
+    get_all_configured_engines
 )
 from chainlite.llm_config import GlobalVars
 
@@ -25,6 +26,7 @@ test_engine="gpt-4o-mini"
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
+    print(get_all_configured_engines())
     # Check that the config file has been loaded properly
     assert GlobalVars.all_llm_endpoints
     assert GlobalVars.prompt_dirs

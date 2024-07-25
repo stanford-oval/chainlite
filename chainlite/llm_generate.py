@@ -48,16 +48,49 @@ def pprint_chain(_dict: Any) -> Any:
     return _dict
 
 
+@chain
+def string_to_json(llm_output: str):
+    """
+    Converts a string output from a language model (LLM) to a JSON object. Useful after a `llm_generation_chain(..., output_json=True)`
+    Args:
+        llm_output (str): The string output from the LLM that needs to be converted to JSON.
+
+    Returns:
+        dict or None: The JSON object if the conversion is successful, otherwise None.
+
+    Raises:
+        json.JSONDecodeError: If there is an error in decoding the JSON string.
+    """
+    try:
+        return json.loads(llm_output)
+    except json.JSONDecodeError as e:
+        # Handle JSON decoding error
+        logger.exception(f"Error decoding JSON: {e}")
+        return None
+
+
 def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:
     return os.path.basename(template_name_1) == os.path.basename(template_name_2)
 
 
-def write_prompt_logs_to_file(log_file: Optional[str] = None, append_to_file: bool = False):
+def write_prompt_logs_to_file(
+    log_file: Optional[str] = None,
+    append: bool = False,
+    include_timestamp: bool = False,
+):
     if not log_file:
         log_file = GlobalVars.prompt_log_file
+    key_order = [
+        "template_name",
+        "instruction",
+        "input",
+        "output",
+    ]  # specifies the sort order of keys in the output, for a better viewing experience
+    if include_timestamp:
+        key_order = ["datetime"] + key_order
 
     mode = "w"
-    if append_to_file:
+    if append:
         mode = "a"
     with open(log_file, mode) as f:
         for item in GlobalVars.prompt_logs.values():
@@ -71,20 +104,13 @@ def write_prompt_logs_to_file(log_file: Optional[str] = None, append_to_file: bo
             if "output" not in item:
                 # happens if the code crashes in the middle of a an LLM call
                 continue
-            datetime_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            item["datetime"] = datetime_str
+            if include_timestamp:
+                datetime_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item["datetime"] = datetime_str
+
             f.write(
                 json.dumps(
-                    {
-                        key: item[key]
-                        for key in [
-                            "datetime",
-                            "template_name",
-                            "instruction",
-                            "input",
-                            "output",
-                        ]  # specifies the sort order of keys in the output, for a better viewing experience
-                    },
+                    {key: item[key] for key in key_order},
                     ensure_ascii=False,
                 )
             )
