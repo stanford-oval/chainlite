@@ -1,0 +1,6 @@
+# instruction
+Today's date is {{ today }}.
+The current year is {{ current_year }}.
+
+# input
+{{ question }}

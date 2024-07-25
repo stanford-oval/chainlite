@@ -1,3 +1,5 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import pytest
 from langchain_core.runnables import RunnableLambda
 
@@ -6,7 +8,8 @@ from chainlite import (
     llm_generation_chain,
     load_config_from_file,
     write_prompt_logs_to_file,
-    get_all_configured_engines
+    get_all_configured_engines,
+    register_prompt_constants,
 )
 from chainlite.llm_config import GlobalVars
 
@@ -22,11 +25,13 @@ chain_inputs = [
     {"topic": "Rabbits"},
 ]
 
-test_engine="gpt-4o-mini"
+test_engine = "gpt-4o-mini"
+
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
-    print(get_all_configured_engines())
+    logger.info("All registered engines: %s", str(get_all_configured_engines()))
+
     # Check that the config file has been loaded properly
     assert GlobalVars.all_llm_endpoints
     assert GlobalVars.prompt_dirs
@@ -56,6 +61,29 @@ async def test_readme_example():
         progress_bar_desc="test1",
         additional_postprocessing_runnable=RunnableLambda(lambda x: x[:5]),
     ).ainvoke({"topic": "Life as a PhD student"})
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_constants():
+    pacific_zone = ZoneInfo("America/Los_Angeles")
+    today = datetime.now(pacific_zone).date().strftime("%B %d, %Y")  # e.g. May 30, 2024
+    response = await llm_generation_chain(
+        template_file="tests/constants.prompt",
+        engine=test_engine,
+        max_tokens=10,
+        temperature=0,
+    ).ainvoke({"question": "what is today's date?"})
+    assert today in response
+
+    # overwrite "today"
+    register_prompt_constants({"today": "Thursday"})
+    response = await llm_generation_chain(
+        template_file="tests/constants.prompt",
+        engine=test_engine,
+        max_tokens=10,
+        temperature=0,
+    ).ainvoke({"question": "what day of the week is today?"})
+    assert "thursday" in response.lower()
 
 
 @pytest.mark.asyncio(scope="session")

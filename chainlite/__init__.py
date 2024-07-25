@@ -11,6 +11,7 @@ from .llm_generate import (
     write_prompt_logs_to_file,
     string_to_json,
 )
+from .load_prompt import register_prompt_constants
 from .utils import get_logger
 
 
@@ -24,4 +25,5 @@ __all__ = [
     "chain",
     "get_all_configured_engines",
     "string_to_json",
+    "register_prompt_constants",
 ]

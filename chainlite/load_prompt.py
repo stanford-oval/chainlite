@@ -5,10 +5,12 @@ from typing import List, Tuple
 from zoneinfo import ZoneInfo  # Python 3.9 and later
 
 from jinja2 import Environment, FileSystemLoader
-from langchain_core.prompts import (AIMessagePromptTemplate,
-                                    ChatPromptTemplate,
-                                    HumanMessagePromptTemplate,
-                                    SystemMessagePromptTemplate)
+from langchain_core.prompts import (
+    AIMessagePromptTemplate,
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
+)
 
 jinja2_comment_pattern = re.compile(r"{#.*?#}", re.DOTALL)
 
@@ -61,7 +63,25 @@ def load_template_file(template_file: str, keep_indentation: bool) -> str:
     return raw_template
 
 
-def add_template_constants(
+added_template_constants = {}
+
+
+def register_prompt_constants(constant_name_to_value_map: dict) -> None:
+    """
+    Make constant values available to all prompt templates.
+    By default, current_year, today and location are set, and you can overwrite them or add new constants using this method.
+
+    Args:
+        constant_name_to_value_map (dict): A dictionary where keys are constant names and values are the corresponding constant values.
+
+    Returns:
+        None
+    """
+    for k, v in constant_name_to_value_map.items():
+        added_template_constants[k] = v
+
+
+def add_constants_to_template(
     chat_prompt_template: ChatPromptTemplate,
 ) -> ChatPromptTemplate:
     # always make these useful constants available in a template
@@ -69,16 +89,15 @@ def add_template_constants(
     pacific_zone = ZoneInfo("America/Los_Angeles")
     today = datetime.now(pacific_zone).date()
 
-    current_year = today.year
-    today = today.strftime("%B %d, %Y")  # e.g. May 30, 2024
-    location = "the U.S."
-    chatbot_name = "WikiChat"
-    chat_prompt_template = chat_prompt_template.partial(
-        today=today,
-        current_year=current_year,
-        location=location,
-        chatbot_name=chatbot_name,
-    )
+    template_constants = {
+        "current_year": today.year,
+        "today": today.strftime("%B %d, %Y"),  # e.g. May 30, 2024
+        "location": "the U.S.",
+    }
+    for k, v in added_template_constants.items():
+        template_constants[k] = v
+
+    chat_prompt_template = chat_prompt_template.partial(**template_constants)
 
     return chat_prompt_template
 
@@ -166,11 +185,13 @@ def _prompt_blocks_to_chat_messages(
         # only keep the distillation_instruction and the last input
         assert distillation_instruction is not None
         message_prompt_templates = [
-            SystemMessagePromptTemplate.from_template(distillation_instruction, template_format="jinja2"),
+            SystemMessagePromptTemplate.from_template(
+                distillation_instruction, template_format="jinja2"
+            ),
             message_prompt_templates[-1],
         ]
     chat_prompt_template = ChatPromptTemplate.from_messages(message_prompt_templates)
-    chat_prompt_template = add_template_constants(chat_prompt_template)
+    chat_prompt_template = add_constants_to_template(chat_prompt_template)
     if distillation_instruction is None:
         # if distillation instruction is not provided, will default to instruction
         block_type, distillation_instruction = tuple(
@@ -180,7 +201,7 @@ def _prompt_blocks_to_chat_messages(
 
     distillation_instruction = (
         (
-            add_template_constants(
+            add_constants_to_template(
                 ChatPromptTemplate.from_template(
                     distillation_instruction, template_format="jinja2"
                 )
