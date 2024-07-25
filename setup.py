@@ -12,19 +12,27 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tqdm",
-        "langchain==0.2.11",
+        "langchain==0.1.17",  # newer versions (up to 0.2.23) cause an error when caching is used
         "langchain-community==0.0.36",
         "langchain-core==0.1.50",
-        "langchain-text-splitters==0.2.2",
+        "langchain-text-splitters==0.0.1",
         "langgraph==0.0.41",
-        "grandalf", # to visualize LangGraph graphs
-        "langsmith==0.1.93",
-        "litellm==1.41.27",
+        "grandalf",  # to visualize LangGraph graphs
+        "langsmith==0.1.53",
+        "litellm==1.40.29",
         "pydantic>=2.5",
         "redis[hiredis]",
     ],
     extras_require={
-        "dev": ["invoke", "pytest", "pytest-asyncio", "setuptools", "wheel", "twine", "isort"],
+        "dev": [
+            "invoke",
+            "pytest",
+            "pytest-asyncio",
+            "setuptools",
+            "wheel",
+            "twine",
+            "isort",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
