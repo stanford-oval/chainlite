@@ -19,6 +19,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.outputs import LLMResult
 from langchain_core.runnables import Runnable, chain
 from tqdm.auto import tqdm
+from pydantic import BaseModel
 
 from chainlite.llm_config import GlobalVars
 from chainlite.mock_llm import MockLLM
@@ -158,7 +159,9 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(run_id)
         if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
-            GlobalVars.prompt_logs[run_id]["output"] = response
+            GlobalVars.prompt_logs[run_id]["output"] = str(
+                response
+            )  # convert to str because output might be a Pydantic object (if `pydantic_class` is provided in `llm_generation_chain()`)
 
 
 class ProgbarHandler(AsyncCallbackHandler):
@@ -229,44 +232,75 @@ async def postprocess_generations(input_: AsyncIterator[str]) -> AsyncIterator[s
         yield buffer
 
 
-# def postprocess_generations(generation_output: str) -> str:
-#     """
-#     Might output an empty string if generation is not at least one full sentence
-#     """
-#     # print("generation_output = ", generation_output)
-#     # replace all whitespaces with a single space
-#     # generation_output = " ".join(generation_output.split())
-#     # print("generation_output = ", generation_output)
-
-#     # original_generation_output = generation_output
-#     # remove extra dialog turns, if any
-#     turn_indicators = [
-#         "You:",
-#         "They:",
-#         "Context:",
-#         "You said:",
-#         "They said:",
-#         "Assistant:",
-#         "Chatbot:",
-#     ]
-#     for t in turn_indicators:
-#         while generation_output.find(t) > 0:
-#             generation_output = generation_output[: generation_output.find(t)]
-
-#     generation_output = generation_output.strip()
+@chain
+def string_to_pydantic_object(llm_output: str, pydantic_class: BaseModel):
+    return pydantic_class.model_validate(json.loads(llm_output))
 
 
-#     if generation_output[-1] not in {".", "!", "?"} and generation_output[-2:] != '."':
-#         # handle preiod inside closing quotation
-#         last_sentence_end = max(
-#             generation_output.rfind("."),
-#             generation_output.rfind("!"),
-#             generation_output.rfind("?"),
-#             generation_output.rfind('."') + 1,
-#         )
-#         if last_sentence_end > 0:
-#             generation_output = generation_output[: last_sentence_end + 1]
-#     return generation_output
+def is_list(obj):
+    return isinstance(obj, list)
+
+
+def is_dict(obj):
+    return isinstance(obj, dict)
+
+
+def _ensure_strict_json_schema(
+    json_schema: object,
+    path: tuple[str, ...],
+) -> dict[str, Any]:
+    """Mutates the given JSON schema to ensure it conforms to the `strict` standard
+    that the API expects.
+
+    Adapted from OpenAI's Python client code
+    """
+    if not is_dict(json_schema):
+        raise TypeError(f"Expected {json_schema} to be a dictionary; path={path}")
+
+    typ = json_schema.get("type")
+    if typ == "object" and "additionalProperties" not in json_schema:
+        json_schema["additionalProperties"] = False
+
+    # object types
+    # { 'type': 'object', 'properties': { 'a':  {...} } }
+    properties = json_schema.get("properties")
+    if is_dict(properties):
+        json_schema["required"] = [prop for prop in properties.keys()]
+        json_schema["properties"] = {
+            key: _ensure_strict_json_schema(
+                prop_schema, path=(*path, "properties", key)
+            )
+            for key, prop_schema in properties.items()
+        }
+
+    # arrays
+    # { 'type': 'array', 'items': {...} }
+    items = json_schema.get("items")
+    if is_dict(items):
+        json_schema["items"] = _ensure_strict_json_schema(items, path=(*path, "items"))
+
+    # unions
+    any_of = json_schema.get("anyOf")
+    if is_list(any_of):
+        json_schema["anyOf"] = [
+            _ensure_strict_json_schema(variant, path=(*path, "anyOf", str(i)))
+            for i, variant in enumerate(any_of)
+        ]
+
+    # intersections
+    all_of = json_schema.get("allOf")
+    if is_list(all_of):
+        json_schema["allOf"] = [
+            _ensure_strict_json_schema(entry, path=(*path, "anyOf", str(i)))
+            for i, entry in enumerate(all_of)
+        ]
+
+    defs = json_schema.get("$defs")
+    if is_dict(defs):
+        for def_name, def_schema in defs.items():
+            _ensure_strict_json_schema(def_schema, path=(*path, "$defs", def_name))
+
+    return json_schema
 
 
 def llm_generation_chain(
@@ -277,6 +311,7 @@ def llm_generation_chain(
     stop_tokens: Optional[List[str]] = None,
     top_p: float = 0.9,
     output_json: bool = False,
+    pydantic_class: BaseModel = None,
     template_blocks: list[tuple[str]] = None,
     keep_indentation: bool = False,
     postprocess: bool = False,
@@ -298,6 +333,8 @@ def llm_generation_chain(
         top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
         output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
             For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
+        pydantic_class (BaseModel, optional): If provided, will parse the output to match this Pydantic class. Only models like gpt-4o-mini and gpt-4o-2024-08-06
+            and newer are supported
         template_blocks: If provided, will use this instead of `template_file`. The format is [(role, string)] where role is one of "instruction", "input", "output"
         keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
         postprocess (bool, optional): If True, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
@@ -325,6 +362,10 @@ def llm_generation_chain(
     if len(potential_llm_resources) == 0:
         raise IndexError(
             f"Could not find any matching engines for {engine}. Please check that llm_config.yaml is configured correctly and that the API key is set in the terminal before running this script."
+        )
+    if pydantic_class and output_json:
+        raise ValueError(
+            "At most one of `output_json` and `pydantic_class` can be used."
         )
     llm_resource = random.choice(potential_llm_resources)
 
@@ -361,6 +402,17 @@ def llm_generation_chain(
     )
     if output_json:
         model_kwargs["response_format"] = {"type": "json_object"}
+    elif pydantic_class:
+        model_kwargs["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "schema": _ensure_strict_json_schema(
+                    pydantic_class.model_json_schema(), path=()
+                ),
+                "name": pydantic_class.__name__,
+                "strict": True,
+            },
+        }
 
     callbacks = []
     if progress_bar_desc:
@@ -402,6 +454,10 @@ def llm_generation_chain(
 
     if additional_postprocessing_runnable:
         llm_generation_chain = llm_generation_chain | additional_postprocessing_runnable
+    if pydantic_class:
+        llm_generation_chain = llm_generation_chain | string_to_pydantic_object.bind(
+            pydantic_class=pydantic_class
+        )
     return llm_generation_chain.with_config(
         callbacks=[ChainLogHandler()],
         metadata={

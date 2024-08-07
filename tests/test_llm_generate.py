@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 from zoneinfo import ZoneInfo
 import pytest
 from langchain_core.runnables import RunnableLambda
@@ -12,6 +13,7 @@ from chainlite import (
     register_prompt_constants,
 )
 from chainlite.llm_config import GlobalVars
+from pydantic import BaseModel
 
 logger = get_logger(__name__)
 
@@ -25,7 +27,7 @@ chain_inputs = [
     {"topic": "Rabbits"},
 ]
 
-test_engine = "gpt-4o-mini"
+test_engine = "gpt-4o-august"
 
 
 @pytest.mark.asyncio(scope="session")
@@ -132,4 +134,28 @@ async def test_mock_llm():
     assert output == [""] * len(chain_inputs)
     output = await c.ainvoke(chain_inputs[0])
     assert output == ""
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_structured_output():
+    class Debate(BaseModel):
+        """
+        A Debate event
+        """
+
+        mention: str
+        people: List[str]
+
+    response = await llm_generation_chain(
+        template_file="structured.prompt",
+        engine=test_engine,
+        max_tokens=1000,
+        pydantic_class=Debate,
+    ).ainvoke(
+        {
+            "text": "4 major candidates for California U.S. Senate seat clash in first debate"
+        }
+    )
+
     write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
