@@ -16,8 +16,28 @@ jinja2_comment_pattern = re.compile(r"{#.*?#}", re.DOTALL)
 
 # Initial setup for prompt_block_identifiers remains the same
 prompt_block_identifiers = {
-    "input": ["# input\n", "# Input\n", "# INPUT\n"],
-    "output": ["# output\n", "# Output\n", "# OUTPUT\n"],
+    "input": [
+        "# input\n",
+        "# Input\n",
+        "# INPUT\n",
+        "# user\n",
+        "# User\n",
+        "# USER\n",
+        "# human\n",
+        "# Human\n",
+        "# HUMAN\n",
+    ],
+    "output": [
+        "# output\n",
+        "# Output\n",
+        "# OUTPUT\n",
+        "# assistant\n",
+        "# Assistant\n",
+        "# ASSISTANT\n",
+        "# ai\n",
+        "# Ai\n",
+        "# AI\n",
+    ],
     "instruction": ["# instruction\n", "# Instruction\n", "# INSTRUCTION\n"],
     "distillation_instruction": [
         "# distillation instruction\n",
@@ -217,7 +237,10 @@ def _prompt_blocks_to_chat_messages(
 
 
 def load_fewshot_prompt_template(
-    template_file: str, template_blocks:list[tuple[str]], is_distilled: bool, keep_indentation: bool
+    template_file: str,
+    template_blocks: list[tuple[str]],
+    is_distilled: bool,
+    keep_indentation: bool,
 ) -> Tuple[ChatPromptTemplate, str | None]:
     if not template_blocks:
         fp = load_template_file(template_file, keep_indentation)
