@@ -452,12 +452,12 @@ def llm_generation_chain(
     else:
         llm_generation_chain = llm_generation_chain | strip
 
-    if additional_postprocessing_runnable:
-        llm_generation_chain = llm_generation_chain | additional_postprocessing_runnable
     if pydantic_class:
         llm_generation_chain = llm_generation_chain | string_to_pydantic_object.bind(
             pydantic_class=pydantic_class
         )
+    if additional_postprocessing_runnable:
+        llm_generation_chain = llm_generation_chain | additional_postprocessing_runnable
     return llm_generation_chain.with_config(
         callbacks=[ChainLogHandler()],
         metadata={
