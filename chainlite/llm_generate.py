@@ -234,7 +234,14 @@ async def postprocess_generations(input_: AsyncIterator[str]) -> AsyncIterator[s
 
 @chain
 def string_to_pydantic_object(llm_output: str, pydantic_class: BaseModel):
-    return pydantic_class.model_validate(json.loads(llm_output))
+    try:
+        return pydantic_class.model_validate(json.loads(llm_output))
+    except Exception as e:
+        logger.exception(
+            f"Error decoding JSON: {e}. This might be resolved by increasing `max_tokens`"
+        )
+        logger.error(f"LLM output: {llm_output}")
+        return None
 
 
 def is_list(obj):
