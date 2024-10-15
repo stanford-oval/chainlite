@@ -14,6 +14,10 @@ ChainLite has been tested with Python 3.10. To install, do the following:
 
 
 1. Install ChainLite via pip:
+   ```bash
+   pip install chainlite
+   ```
+   or
     ```bash
     pip install https://github.com/stanford-oval/chainlite.git
     ```
