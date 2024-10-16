@@ -159,3 +159,16 @@ async def test_structured_output():
     )
 
     write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_o1_model():
+    response = await llm_generation_chain(
+        template_file="tests/joke.prompt",
+        engine="o1",
+        max_tokens=1000,
+        temperature=0.1,
+    ).ainvoke({"topic": "A strawberry."})
+    # print(response)
+
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
