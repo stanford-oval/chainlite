@@ -1,0 +1,5 @@
+# instruction
+You are a copy machine. Copy what the user inputs and print it out.
+
+# input
+{{ input }}

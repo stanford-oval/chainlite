@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 from typing import List
 from zoneinfo import ZoneInfo
 import pytest
@@ -14,6 +15,8 @@ from chainlite import (
 )
 from chainlite.llm_config import GlobalVars
 from pydantic import BaseModel
+import random
+import string
 
 logger = get_logger(__name__)
 
@@ -172,3 +175,30 @@ async def test_o1_model():
     # print(response)
 
     write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_cache():
+    c = llm_generation_chain(
+        template_file="tests/copy.prompt",
+        engine=test_engine,
+        max_tokens=100,
+        temperature=0.0,
+    )
+    # use random input so that the first call is not cached
+    start_time = time.time()
+    random_input = "".join(random.choices(string.ascii_letters + string.digits, k=20))
+    response1 = await c.ainvoke({"input": random_input})
+    first_time = time.time() - start_time
+    print("First call took {:.2f} seconds".format(first_time))
+
+    start_time = time.time()
+    response2 = await c.ainvoke({"input": random_input})
+    second_time = time.time() - start_time
+    print("Second call took {:.2f} seconds".format(second_time))
+    assert response1 == response2
+    assert (
+        second_time < first_time * 0.5
+    ), "The second (cached) LLM call should be much faster than the first call"
+
+    c.ainvoke
