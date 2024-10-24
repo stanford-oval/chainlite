@@ -139,8 +139,8 @@ def _split_prompt_to_blocks(prompt: str) -> List[Tuple[str, str]]:
 
     # check the prompt format is correct
     assert (
-        len([b for b in block_indices if b[1] == "instruction"]) == 1
-    ), "Prompts should contain exactly one instruction block"
+        len([b for b in block_indices if b[1] == "instruction"]) <= 1
+    ), "Prompts should contain at most one instruction block"
     num_distillation_instruction = len(
         [b for b in block_indices if b[1] == "distillation_instruction"]
     )
@@ -166,12 +166,12 @@ def _split_prompt_to_blocks(prompt: str) -> List[Tuple[str, str]]:
     block_indices_with_end = block_indices + [(len(prompt), "end", "end")]
     blocks = []
     for i in range(len(block_indices)):
-        block_string = prompt[
+        block_content = prompt[
             block_indices_with_end[i][0]
             + len(block_indices_with_end[i][2]) : block_indices_with_end[i + 1][0]
         ].strip()
 
-        blocks.append((block_indices_with_end[i][1], block_string))
+        blocks.append((block_indices_with_end[i][1], block_content))
 
     return blocks
 
@@ -181,6 +181,11 @@ def _prompt_blocks_to_chat_messages(
 ) -> Tuple[ChatPromptTemplate, str | None]:
     message_prompt_templates = []
     distillation_instruction = None
+
+    # Add an instruction block if it is not present
+    if len([b for b in blocks if b[0] == "instruction"]) == 0:
+        blocks = [("instruction", "")] + blocks
+
     if is_distilled:
         assert "distillation_instruction" in [
             b[0] for b in blocks
