@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 import time
 from typing import List
@@ -14,6 +15,7 @@ from chainlite import (
     register_prompt_constants,
     get_total_cost
 )
+from chainlite.utils import run_async_in_parallel
 from chainlite.llm_config import GlobalVars
 from pydantic import BaseModel
 import random
@@ -192,3 +194,17 @@ async def test_cache():
     ), "The second (cached) LLM call should be much faster than the first call"
     assert first_cost > 0, "The cost should be greater than 0"
     assert second_cost == first_cost, "The cost should not change after a cached LLM call"
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_run_async_in_parallel():
+    
+    async def async_function(i):
+        await asyncio.sleep(1)
+        return i
+
+    test_inputs = range(10)
+    max_concurrency = 5
+    desc = "test"
+    ret = await run_async_in_parallel(async_function, test_inputs, max_concurrency, desc)
+    assert ret == list(test_inputs)
