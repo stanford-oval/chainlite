@@ -1,19 +1,54 @@
 import os
 import threading
+from typing import Any, Optional
 
 import litellm
 import redis.asyncio as redis
 import yaml
 from langchain.globals import set_llm_cache
 from langchain_community.cache import AsyncRedisCache
+from langchain_core.caches import RETURN_VAL_TYPE
+from langchain_core.load.dump import dumps
 
 from .load_prompt import initialize_jinja_environment
 
 # TODO move cache setting to the config file
 # We do not use LiteLLM's cache, use LangChain's instead
-# litellm.enable_cache(type="redis", url="redis://localhost:6379")
 redis_client = redis.Redis.from_url("redis://localhost:6379")
-redis_cache = AsyncRedisCache(redis_client)
+
+
+class CustomAsyncRedisCache(AsyncRedisCache):
+    """This class fixes langchain 0.2.*'s cache issue with LiteLLM
+    The core of the problem is that LiteLLM's Usage class should inherit from LangChain's Serializable class, but doesn't.
+    This class is the minimal fix to make it work.
+    """
+
+    @staticmethod
+    def _configure_pipeline_for_update(
+        key: str, pipe: Any, return_val: RETURN_VAL_TYPE, ttl: Optional[int] = None
+    ) -> None:
+        for r in return_val:
+            if (
+                hasattr(r.message, "response_metadata")
+                and "token_usage" in r.message.response_metadata
+            ):
+                r.message.response_metadata["token_usage"] = (
+                    r.message.response_metadata["token_usage"].dict()
+                )
+        pipe.hset(
+            key,
+            mapping={
+                str(idx): dumps(generation) for idx, generation in enumerate(return_val)
+            },
+        )
+        if ttl is not None:
+            pipe.expire(key, ttl)
+
+
+SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7
+redis_cache = CustomAsyncRedisCache(
+    redis_client, ttl=SECONDS_IN_A_WEEK
+)  # TTL is in seconds
 set_llm_cache(redis_cache)
 
 litellm.drop_params = (
@@ -49,7 +84,7 @@ class ThreadSafeDict:
     def items(self):
         with self._lock:
             return list(self._dict.items())
-        
+
     def keys(self):
         with self._lock:
             return list(self._dict.keys())
@@ -58,6 +93,7 @@ class ThreadSafeDict:
         with self._lock:
             return list(self._dict.values())
 
+
 class GlobalVars:
     prompt_logs = ThreadSafeDict()
     all_llm_endpoints = None
@@ -65,7 +101,7 @@ class GlobalVars:
     prompt_log_file = None
     prompts_to_skip_for_debugging = None
     local_engine_set = None
-    
+
     @classmethod
     def get_all_configured_engines(cls):
         all_engines = set()
@@ -76,6 +112,7 @@ class GlobalVars:
 
 def get_all_configured_engines():
     return GlobalVars.get_all_configured_engines()
+
 
 def load_config_from_file(config_file: str) -> None:
     with open(config_file, "r") as config_file:

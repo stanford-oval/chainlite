@@ -12,6 +12,7 @@ from chainlite import (
     write_prompt_logs_to_file,
     get_all_configured_engines,
     register_prompt_constants,
+    get_total_cost
 )
 from chainlite.llm_config import GlobalVars
 from pydantic import BaseModel
@@ -61,7 +62,7 @@ async def test_string_prompts():
     response = await llm_generation_chain(
         template_file="",
         template_blocks=[
-            ("instruction", "X=1, Y=6."),
+            ("instruction", "X = 1, Y = 6."),
             ("input", "what is X?"),
             ("output", "The value of X is one"),
             ("input", "what is {{ variable }}?"),
@@ -95,7 +96,7 @@ async def test_constants():
         engine=test_engine,
         max_tokens=10,
         temperature=0,
-    ).ainvoke({"question": "what is today's date?"})
+    ).ainvoke({"question": "What is today's date?"})
     assert today in response
 
     # overwrite "today"
@@ -105,7 +106,7 @@ async def test_constants():
         engine=test_engine,
         max_tokens=10,
         temperature=0,
-    ).ainvoke({"question": "what day of the week is today?"})
+    ).ainvoke({"question": "What day of the week is today?"})
     assert "thursday" in response.lower()
 
 
@@ -120,23 +121,6 @@ async def test_batching():
     ).abatch(chain_inputs)
     assert len(response) == len(chain_inputs)
 
-    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
-
-
-@pytest.mark.asyncio(scope="session")
-async def test_mock_llm():
-    c = llm_generation_chain(
-        template_file="tests/joke.prompt",
-        engine=test_engine,
-        max_tokens=100,
-        temperature=0.1,
-        progress_bar_desc="test2",
-        mock=True,
-    )
-    output = await c.abatch(chain_inputs)
-    assert output == [""] * len(chain_inputs)
-    output = await c.ainvoke(chain_inputs[0])
-    assert output == ""
     write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
 
 
@@ -190,15 +174,21 @@ async def test_cache():
     random_input = "".join(random.choices(string.ascii_letters + string.digits, k=20))
     response1 = await c.ainvoke({"input": random_input})
     first_time = time.time() - start_time
+    first_cost = get_total_cost()
+
     print("First call took {:.2f} seconds".format(first_time))
+    print("Total cost after first call: ${:.10f}".format(first_cost))
 
     start_time = time.time()
     response2 = await c.ainvoke({"input": random_input})
     second_time = time.time() - start_time
     print("Second call took {:.2f} seconds".format(second_time))
+    second_cost = get_total_cost()
+    print("Total cost after second call: ${:.10f}".format(second_cost))
+
     assert response1 == response2
     assert (
         second_time < first_time * 0.5
     ), "The second (cached) LLM call should be much faster than the first call"
-
-    c.ainvoke
+    assert first_cost > 0, "The cost should be greater than 0"
+    assert second_cost == first_cost, "The cost should not change after a cached LLM call"

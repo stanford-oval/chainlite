@@ -1,5 +1,5 @@
 # instruction
-Extract structured data from the given text
+Extract structured data from the given text.
 {# This is a comment, and will be ignored anywhere in a .prompt file. Other than block definitions and comments, '#' is allowed and is treated as a normal character.  #}
 
 # input
