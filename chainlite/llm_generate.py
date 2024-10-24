@@ -22,7 +22,6 @@ from tqdm.auto import tqdm
 from pydantic import BaseModel
 
 from chainlite.llm_config import GlobalVars
-from chainlite.mock_llm import MockLLM
 
 from .load_prompt import load_fewshot_prompt_template
 from .utils import get_logger
@@ -326,7 +325,6 @@ def llm_generation_chain(
     additional_postprocessing_runnable: Runnable = None,
     bind_prompt_values: Dict = {},
     force_skip_cache: bool = False,
-    mock: bool = False,
 ) -> Runnable:
     """
     Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
@@ -427,28 +425,16 @@ def llm_generation_chain(
         callbacks.append(cb)
 
     should_cache = (temperature == 0) and not force_skip_cache
-    if mock:
-        llm = MockLLM(
-            model_kwargs=model_kwargs,
-            api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
-            api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
-            cache=should_cache,
-            model_name=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            callbacks=callbacks,
-        )
-    else:
-        llm = ChatLiteLLM(
-            model_kwargs=model_kwargs,
-            api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
-            api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
-            cache=should_cache,
-            model_name=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            callbacks=callbacks,
-        )
+    llm = ChatLiteLLM(
+        model_kwargs=model_kwargs,
+        api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
+        api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
+        cache=should_cache,
+        model_name=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        callbacks=callbacks,
+    )
 
     # for variable, value in bind_prompt_values.keys():
     if len(bind_prompt_values) > 0:
