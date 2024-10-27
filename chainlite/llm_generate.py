@@ -8,7 +8,7 @@ import os
 import random
 import re
 from datetime import datetime
-from pprint import pprint
+from rich import print as pprint
 from typing import Any, AsyncIterator, Dict, List, Optional
 from uuid import UUID
 
@@ -46,27 +46,6 @@ def pprint_chain(_dict: Any) -> Any:
     """
     pprint(_dict)
     return _dict
-
-
-@chain
-def string_to_json(llm_output: str):
-    """
-    Converts a string output from a language model (LLM) to a JSON object. Useful after a `llm_generation_chain(..., output_json=True)`
-    Args:
-        llm_output (str): The string output from the LLM that needs to be converted to JSON.
-
-    Returns:
-        dict or None: The JSON object if the conversion is successful, otherwise None.
-
-    Raises:
-        json.JSONDecodeError: If there is an error in decoding the JSON string.
-    """
-    try:
-        return json.loads(llm_output)
-    except json.JSONDecodeError as e:
-        # Handle JSON decoding error
-        logger.exception(f"Error decoding JSON: {e}")
-        return None
 
 
 def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:

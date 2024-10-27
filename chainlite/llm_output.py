@@ -1,6 +1,8 @@
+import json
 import re
-from chainlite import chain
+from chainlite import chain, get_logger
 
+logger = get_logger(__name__)
 
 @chain
 def extract_tag_from_llm_output(
@@ -65,7 +67,7 @@ def lines_to_list(llm_output: str) -> list[str]:
             r = r[1:].strip()
         # remove starting item number
         r = re.split(r"^\d+\.", r)[-1]
-        ret.append(r)
+        ret.append(r.strip())
 
     return ret
 
@@ -96,3 +98,23 @@ def string_to_indices(llm_output: str, llm_output_start_index: int) -> list[int]
         if item.isdigit():
             result.append(int(item) - llm_output_start_index)
     return result
+
+@chain
+def string_to_json(llm_output: str):
+    """
+    Converts a string output from a language model (LLM) to a JSON object. Useful after a `llm_generation_chain(..., output_json=True)`
+    Args:
+        llm_output (str): The string output from the LLM that needs to be converted to JSON.
+
+    Returns:
+        dict or None: The JSON object if the conversion is successful, otherwise None.
+
+    Raises:
+        json.JSONDecodeError: If there is an error in decoding the JSON string.
+    """
+    try:
+        return json.loads(llm_output)
+    except json.JSONDecodeError as e:
+        # Handle JSON decoding error
+        logger.exception(f"Error decoding JSON: {e}")
+        return None
