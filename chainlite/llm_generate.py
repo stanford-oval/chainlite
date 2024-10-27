@@ -9,13 +9,14 @@ import random
 import re
 from datetime import datetime
 from rich import print as pprint
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
 from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import StrOutputParser
+
 from langchain_core.outputs import LLMResult
 from langchain_core.runnables import Runnable, chain
 from tqdm.auto import tqdm
@@ -137,6 +138,22 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(run_id)
         if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
+            if (
+                isinstance(response, tuple)
+                and len(response) == 2
+                and isinstance(response[1], ToolOutput)
+            ):
+                response = list(response)
+                response[1] = str(response[1])
+            elif isinstance(response, ToolOutput):
+                response = str(response)
+            if isinstance(response, tuple) and len(response) == 2:
+                response = list(response)
+                # if exactly one is not None/empty, then we want to log that one
+                if response[0] and not response[1]:
+                    response = response[0]
+                elif not response[0] and response[1]:
+                    response = response[1]
             GlobalVars.prompt_logs[run_id]["output"] = str(
                 response
             )  # convert to str because output might be a Pydantic object (if `pydantic_class` is provided in `llm_generation_chain()`)
@@ -169,45 +186,6 @@ class ProgbarHandler(AsyncCallbackHandler):
             )  # define a progress bar
         self.count += 1
         self.progress_bar.update(1)
-
-
-async def strip(input_: AsyncIterator[str]) -> AsyncIterator[str]:
-    """
-    Strips whitespace from a string, but supports streaming in a LangChain chain
-    """
-    prev_chunk = (await input_.__anext__()).lstrip()
-    while True:
-        try:
-            current_chunk = await input_.__anext__()
-        except StopAsyncIteration as e:
-            yield prev_chunk.rstrip()
-            break
-        yield prev_chunk
-        prev_chunk = current_chunk
-
-
-def extract_until_last_full_sentence(text):
-    match = partial_sentence_regex.search(text)
-    if match:
-        # Return the matched group, which should include punctuation and an optional quotation.
-        return match.group(1)
-    else:
-        return ""
-
-
-async def postprocess_generations(input_: AsyncIterator[str]) -> AsyncIterator[str]:
-    buffer = ""
-    yielded = False
-    async for chunk in input_:
-        buffer += chunk
-        until_last_full_sentence = extract_until_last_full_sentence(buffer)
-        if len(until_last_full_sentence) > 0:
-            yield buffer[: len(until_last_full_sentence)]
-            yielded = True
-            buffer = buffer[len(until_last_full_sentence) :]
-    if not yielded:
-        # yield the entire input so that the output is not None
-        yield buffer
 
 
 @chain
@@ -288,6 +266,38 @@ def _ensure_strict_json_schema(
     return json_schema
 
 
+class ToolOutput(BaseModel):
+    function: Callable
+    kwargs: dict
+
+    def __repr__(self):
+        return (
+            f"{self.function.__name__}("
+            + ", ".join([f"{k}={repr(v)}" for k, v in self.kwargs.items()])
+            + ")"
+        )
+
+
+@chain
+async def return_response_and_tool(
+    llm_output, tools: list[Callable], force_tool_calling: bool
+):
+    response = await StrOutputParser().ainvoke(input=llm_output)
+    tool_output_in_json_format = llm_output.tool_calls
+
+    tool_outputs = []
+    for t in tool_output_in_json_format:
+        tool_name = t["name"]
+        matching_tool = next(
+            (tool for tool in tools if tool.__name__ == tool_name), None
+        )
+        if matching_tool:
+            tool_outputs.append(ToolOutput(function=matching_tool, kwargs=t["args"]))
+    if force_tool_calling:
+        return tool_outputs
+    return response, tool_outputs
+
+
 def llm_generation_chain(
     template_file: str,
     engine: str,
@@ -299,9 +309,10 @@ def llm_generation_chain(
     pydantic_class: BaseModel = None,
     template_blocks: list[tuple[str]] = None,
     keep_indentation: bool = False,
-    postprocess: bool = False,
     progress_bar_desc: Optional[str] = None,
     additional_postprocessing_runnable: Runnable = None,
+    tools: Optional[list[Callable]] = None,
+    force_tool_calling: bool = False,
     bind_prompt_values: Dict = {},
     force_skip_cache: bool = False,
 ) -> Runnable:
@@ -321,8 +332,9 @@ def llm_generation_chain(
             and newer are supported
         template_blocks: If provided, will use this instead of `template_file`. The format is [(role, string)] where role is one of "instruction", "input", "output"
         keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
-        postprocess (bool, optional): If True, postprocessing deletes incomplete sentences from the end of the generation. Defaults to False.
         progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
+        tools (List[Callable], optional): If provided, will be made available to the underlying LLM, to optionally output it for function calling. Defaults to None.
+        force_tool_calling (bool, optional): If True, will force the LLM to output the tools for function calling. Defaults to False.
         additional_postprocessing_runnable (Runnable, optional): If provided, will be applied to the output of LLM generation, and the final output will be logged
         bind_prompt_values (Dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
 
@@ -347,9 +359,13 @@ def llm_generation_chain(
         raise IndexError(
             f"Could not find any matching engines for {engine}. Please check that llm_config.yaml is configured correctly and that the API key is set in the terminal before running this script."
         )
-    if pydantic_class and output_json:
+    if (
+        (pydantic_class and tools)
+        or (pydantic_class and output_json)
+        or (pydantic_class and output_json)
+    ):
         raise ValueError(
-            "At most one of `output_json` and `pydantic_class` can be used."
+            "At most one of `pydantic_class`, `output_json` and `tools` can be used."
         )
     llm_resource = random.choice(potential_llm_resources)
 
@@ -414,20 +430,29 @@ def llm_generation_chain(
         temperature=temperature,
         callbacks=callbacks,
     )
+    if tools:
+        if force_tool_calling:
+            llm = llm.bind_tools(tools=tools, tool_choice="required")
+        else:
+            llm = llm.bind_tools(tools=tools)
 
     # for variable, value in bind_prompt_values.keys():
     if len(bind_prompt_values) > 0:
         prompt = prompt.partial(**bind_prompt_values)
-    llm_generation_chain = prompt | llm | StrOutputParser()
-    if postprocess:
-        llm_generation_chain = llm_generation_chain | postprocess_generations
+
+    llm_generation_chain = prompt | llm
+    if tools:
+        llm_generation_chain = llm_generation_chain | return_response_and_tool.bind(
+            tools=tools, force_tool_calling=force_tool_calling
+        )
     else:
-        llm_generation_chain = llm_generation_chain | strip
+        llm_generation_chain = llm_generation_chain | StrOutputParser()
 
     if pydantic_class:
         llm_generation_chain = llm_generation_chain | string_to_pydantic_object.bind(
             pydantic_class=pydantic_class
         )
+
     if additional_postprocessing_runnable:
         llm_generation_chain = llm_generation_chain | additional_postprocessing_runnable
     return llm_generation_chain.with_config(

@@ -48,6 +48,7 @@ def tests(c, log_level="info", parallel=False):
 
     test_files = [
         "./tests/test_llm_generate.py",
+        "./tests/test_function_calling.py",
     ]
 
     pytest_command = (

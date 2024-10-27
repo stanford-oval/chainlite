@@ -49,8 +49,9 @@ llm_generation_chain(
     output_json: bool = False,
     template_blocks: list[tuple[str]]=None,
     keep_indentation: bool = False,
-    postprocess: bool = False,
     progress_bar_desc: Optional[str] = None,
+    tools: Optional[List[Callable]] = None,
+    force_tool_calling: bool = False,
     additional_postprocessing_runnable: Runnable = None,
     bind_prompt_values: Dict = {},
 ) # returns a LangChain chain the accepts inputs and returns a string as output

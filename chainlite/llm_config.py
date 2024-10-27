@@ -19,7 +19,7 @@ redis_client = redis.Redis.from_url("redis://localhost:6379")
 
 class CustomAsyncRedisCache(AsyncRedisCache):
     """This class fixes langchain 0.2.*'s cache issue with LiteLLM
-    The core of the problem is that LiteLLM's Usage class should inherit from LangChain's Serializable class, but doesn't.
+    The core of the problem is that LiteLLM's `Usage` and `ChatCompletionMessageToolCall` classes should inherit from LangChain's Serializable class, but don't.
     This class is the minimal fix to make it work.
     """
 
@@ -28,6 +28,15 @@ class CustomAsyncRedisCache(AsyncRedisCache):
         key: str, pipe: Any, return_val: RETURN_VAL_TYPE, ttl: Optional[int] = None
     ) -> None:
         for r in return_val:
+            if (
+                hasattr(r.message, "additional_kwargs")
+                and "tool_calls" in r.message.additional_kwargs
+            ):
+                r.message.additional_kwargs["tool_calls"] = [
+                    tool_call.dict()
+                    for tool_call in r.message.additional_kwargs["tool_calls"]
+                ]
+
             if (
                 hasattr(r.message, "response_metadata")
                 and "token_usage" in r.message.response_metadata
