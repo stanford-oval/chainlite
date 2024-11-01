@@ -30,16 +30,29 @@ def load_api_keys(c):
 
 
 @task()
-def start_redis(c, redis_port=DEFAULT_REDIS_PORT):
+def start_redis(c, redis_port: int = DEFAULT_REDIS_PORT):
+    """
+    Start a Redis server if it is not already running.
+
+    This task attempts to connect to a Redis server on the specified port.
+    If the connection fails (indicating that the Redis server is not running),
+    it starts a new Redis server on that port.
+
+    Parameters:
+    - c: Context, automatically passed by invoke.
+    - redis_port (int): The port number on which to start the Redis server. Defaults to DEFAULT_REDIS_PORT.
+    """
     try:
         r = redis.Redis(host="localhost", port=redis_port)
         r.ping()
     except redis.exceptions.ConnectionError:
         logger.info("Redis server not found, starting it now...")
-        c.run(f"redis-server --port {redis_port} --daemonize yes")
+        c.run(
+            f"docker run --rm -d --name redis-stack -p {redis_port}:6379 -p 8001:8001 redis/redis-stack:latest"
+        )
         return
 
-    logger.debug("Redis server is aleady running.")
+    logger.debug("Redis server is already running.")
 
 
 @task(pre=[load_api_keys, start_redis], aliases=["test"])
