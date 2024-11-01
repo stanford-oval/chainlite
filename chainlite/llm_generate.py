@@ -28,10 +28,6 @@ from .chat_lite_llm import ChatLiteLLM
 from .load_prompt import load_fewshot_prompt_template
 from .utils import get_logger
 
-logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
-logging.getLogger("LiteLLM Proxy").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = get_logger(__name__)
 
 # This regex pattern aims to capture up through the last '.', '!', '?',
@@ -39,15 +35,6 @@ logger = get_logger(__name__)
 # It uses a lookahead to ensure it captures until the last such punctuation
 # possibly followed by a quotation mark.
 partial_sentence_regex = re.compile(r'([\s\S]*?[.!?]"?)(?=(?:[^.!?]*$))')
-
-
-@chain
-def pprint_chain(_dict: Any) -> Any:
-    """
-    Print intermediate results for debugging
-    """
-    pprint(_dict)
-    return _dict
 
 
 def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:

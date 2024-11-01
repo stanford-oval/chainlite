@@ -1,3 +1,7 @@
+"""
+Functionality to work with .prompt files in Jinja2 format.
+"""
+
 import re
 from datetime import datetime
 from functools import lru_cache

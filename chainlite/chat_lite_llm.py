@@ -305,6 +305,13 @@ class ChatLiteLLM(BaseChatModel):
             generations.append(gen)
         token_usage = response.get("usage", {})
         llm_output = {"token_usage": token_usage, "model": self.model}
+        if (
+            "logprobs" in response["choices"][0]
+            and "content" in response["choices"][0]["logprobs"]
+        ):
+            llm_output["logprobs"] = (
+                response["choices"][0].get("logprobs").get("content")
+            )
         return ChatResult(generations=generations, llm_output=llm_output)
 
     def _create_message_dicts(

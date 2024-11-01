@@ -1,8 +1,9 @@
 import asyncio
 import logging
-from typing import Optional
-
+from typing import Any, Optional
+import rich
 from tqdm import tqdm
+from langchain_core.runnables import chain
 
 logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
@@ -61,3 +62,12 @@ async def run_async_in_parallel(
             ret[original_index] = result
 
     return ret
+
+
+@chain
+def pprint_chain(_dict: Any) -> Any:
+    """
+    Print intermediate results for debugging
+    """
+    rich.print(_dict)
+    return _dict
