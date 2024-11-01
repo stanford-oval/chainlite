@@ -212,7 +212,7 @@ async def test_o1_model():
         template_file="tests/joke.prompt",
         engine="o1",
         max_tokens=1000,
-        temperature=0.1,
+        temperature=0.01,
     ).ainvoke({"topic": "A strawberry."})
     assert response
 
@@ -247,7 +247,9 @@ async def test_cache():
         second_time < first_time * 0.5
     ), "The second (cached) LLM call should be much faster than the first call"
     assert first_cost > 0, "The cost should be greater than 0"
-    assert second_cost == first_cost, "The cost should not change after a cached LLM call"
+    assert (
+        second_cost == first_cost
+    ), "The cost should not change after a cached LLM call"
 
 
 @pytest.mark.asyncio(scope="session")
@@ -260,5 +262,7 @@ async def test_run_async_in_parallel():
     test_inputs = range(10)
     max_concurrency = 5
     desc = "test"
-    ret = await run_async_in_parallel(async_function, test_inputs, max_concurrency, desc)
+    ret = await run_async_in_parallel(
+        async_function, test_inputs, max_concurrency, desc
+    )
     assert ret == list(test_inputs)

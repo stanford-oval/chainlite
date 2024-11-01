@@ -120,10 +120,14 @@ class GlobalVars:
 
 
 def get_all_configured_engines():
+    load_config_from_file()
     return GlobalVars.get_all_configured_engines()
 
 
-def load_config_from_file(config_file: str) -> None:
+def load_config_from_file(config_file: str = "./llm_config.yaml") -> None:
+    if GlobalVars.all_llm_endpoints is not None:
+        # Configuration file is already loaded
+        return
     with open(config_file, "r") as config_file:
         config = yaml.unsafe_load(config_file)
 
@@ -193,7 +197,6 @@ def load_config_from_file(config_file: str) -> None:
 # this code is NOT safe to use with multiprocessing, only multithreading
 thread_lock = threading.Lock()
 
-load_config_from_file("./llm_config.yaml")
 total_cost = 0.0  # in USD
 
 

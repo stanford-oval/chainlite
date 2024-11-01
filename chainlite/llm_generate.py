@@ -22,7 +22,7 @@ from langchain_core.runnables import Runnable, chain
 from tqdm.auto import tqdm
 from pydantic import BaseModel
 
-from chainlite.llm_config import GlobalVars
+from chainlite.llm_config import GlobalVars, load_config_from_file
 
 from .chat_lite_llm import ChatLiteLLM
 from .load_prompt import load_fewshot_prompt_template
@@ -348,11 +348,13 @@ def llm_generation_chain(
         IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
     """
 
-    # Decide which LLM resource to send this request to.
+    load_config_from_file()
     if not GlobalVars.all_llm_endpoints:
-        logger.error(
+        raise ValueError(
             "No LLM API found. Make sure configuration and API_KEY files are set correctly, and that load_config_from_file() is called before using any other function."
         )
+
+    # Decide which LLM resource to send this request to.
     potential_llm_resources = [
         resource
         for resource in GlobalVars.all_llm_endpoints
