@@ -15,32 +15,32 @@ prompt_dirs: # List of directories containing prompt files, relative to the loca
 
 litellm_set_verbose: false  # Verbose logging setting for LiteLLM
 prompt_logging:
-  log_file: "./prompt_logs.jsonl"  # Path to the log file for prompt logs, relative to the location of this file
+  log_file: ./prompt_logs.jsonl  # Path to the log file for prompt logs, relative to the location of this file
   prompts_to_skip:
-    - "tests/test.prompt"  # List of prompts to exclude from logging, relative to the location of this file
+    - tests/test.prompt  # List of prompts to exclude from logging, relative to the location of this file
 
 # Configuration for different LLM endpoints
 llm_endpoints:
   # Example configuration for OpenAI models via Azure API
-  - api_base: https://<your azure opanai resource>.openai.azure.com  # Base URL for Azure OpenAI API
-    api_version: "2024-02-15-preview"  # API version for Azure OpenAI
-    api_key: "AZURE_OPENAI_API_KEY"  # API key for Azure OpenAI
+  - api_base: https://ovalopenairesource.openai.azure.com  # Base URL for Azure OpenAI API
+    api_version: 2024-08-01-preview  # API version for Azure OpenAI
+    api_key: AZURE_OPENAI_API_KEY_TEST  # API key for Azure OpenAI
     engine_map:  # Mapping of model names to Azure deployment identifiers prepended by "azure/"
       gpt-35-turbo: azure/gpt-35-turbo
       gpt-35-turbo-16k: azure/gpt-35-turbo-16k
       gpt-35-turbo-instruct: azure_text/gpt-35-turbo-instruct
-      gpt-4: azure/gpt-4
+      gpt-4o-azure: azure/gpt-4o-global
       gpt-4-32k: azure/gpt-4-32k
 
 # Example of OpenAI models via openai.com
   - api_base: https://api.openai.com/v1
-    api_key: OPENAI_API_KEY
+    api_key: OPENAI_API_KEY_TEST
     engine_map: # OpenAI models don't need the "openai/" prefix
       gpt-35-turbo: gpt-3.5-turbo-0125
       gpt-35-turbo-instruct: gpt-3.5-turbo-instruct
       gpt-4: gpt-4-turbo-2024-04-09
       gpt-4o-mini: gpt-4o-mini
-      gpt-4o-august: gpt-4o-2024-08-06 # you can specify which version of the model you want
+      gpt-4o-openai: gpt-4o-2024-08-06 # you can specify which version of the model you want
       gpt-4o: gpt-4o # you can leave it to OpenAI to select the latest model version for you
       gpt-4o-another-one: gpt-4o # "model" names, which are on the right side-hand of a mapping, do not need to be unique
       o1: o1-preview-2024-09-12

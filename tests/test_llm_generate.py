@@ -13,7 +13,7 @@ from chainlite import (
     write_prompt_logs_to_file,
     get_all_configured_engines,
     register_prompt_constants,
-    get_total_cost
+    get_total_cost,
 )
 from chainlite.utils import run_async_in_parallel
 from chainlite.llm_config import GlobalVars
@@ -33,7 +33,24 @@ chain_inputs = [
     {"topic": "Rabbits"},
 ]
 
-test_engine = "gpt-4o-august"
+test_engine = "gpt-4o-openai"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def run_after_all_tests():
+    """
+    This fixture will run after all tests in the session.
+    """
+    yield  # This ensures that the fixture runs after all tests are done.
+
+    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+    with open("tests/llm_input_outputs.jsonl", "r") as f:
+        prompt_logs = f.read()
+
+    print(prompt_logs)
+    assert (
+        "test.prompt" not in prompt_logs
+    ), "test.prompt is in the prompts_to_skip and therefore should not be logged"
 
 
 @pytest.mark.asyncio(scope="session")
@@ -51,6 +68,7 @@ async def test_llm_generate():
         template_file="test.prompt",  # prompt path relative to one of the paths specified in `prompt_dirs`
         engine=test_engine,
         max_tokens=100,
+        force_skip_cache=True,
     ).ainvoke({})
     # logger.info(response)
 
@@ -87,19 +105,22 @@ async def test_string_prompts():
         max_tokens=10,
         temperature=0,
     ).ainvoke({"variable": "Y"})
-    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
 
 
 @pytest.mark.asyncio(scope="session")
-async def test_readme_example():
+@pytest.mark.parametrize("engine", ["gpt-4o-openai", "gpt-4o-azure"])
+async def test_llm_examples(engine):
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
-        engine=test_engine,
+        engine=engine,
         max_tokens=100,
         temperature=0.1,
         progress_bar_desc="test1",
         additional_postprocessing_runnable=RunnableLambda(lambda x: x[:5]),
     ).ainvoke({"topic": "Life as a PhD student"})
+
+    assert isinstance(response, str)
+    assert len(response) == 5
 
 
 @pytest.mark.asyncio(scope="session")
@@ -136,7 +157,26 @@ async def test_batching():
     ).abatch(chain_inputs)
     assert len(response) == len(chain_inputs)
 
-    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+
+@pytest.mark.asyncio(scope="session")
+async def test_cached_batching():
+    c = llm_generation_chain(
+        template_file="tests/joke.prompt",
+        engine=test_engine,
+        max_tokens=100,
+        temperature=0.0,
+        progress_bar_desc="test2",
+    )
+    await c.ainvoke({"topic": "Ice cream"})
+    first_cost = get_total_cost()
+    start_time = time.time()
+    response = await c.abatch([{"topic": "Ice cream"}] * 200)
+    assert (
+        time.time() - start_time < 1
+    ), "The batched LLM calls should be cached and therefore very fast"
+    assert (
+        get_total_cost() == first_cost
+    ), "The cost should not change after a cached batched LLM call"
 
 
 @pytest.mark.asyncio(scope="session")
@@ -153,6 +193,7 @@ async def test_structured_output():
         template_file="structured.prompt",
         engine=test_engine,
         max_tokens=1000,
+        force_skip_cache=True,
         pydantic_class=Debate,
     ).ainvoke(
         {
@@ -160,7 +201,9 @@ async def test_structured_output():
         }
     )
 
-    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+    assert isinstance(response, Debate)
+    assert response.mention
+    assert response.people
 
 
 @pytest.mark.asyncio(scope="session")
@@ -171,9 +214,7 @@ async def test_o1_model():
         max_tokens=1000,
         temperature=0.1,
     ).ainvoke({"topic": "A strawberry."})
-    # print(response)
-
-    write_prompt_logs_to_file("tests/llm_input_outputs.jsonl")
+    assert response
 
 
 @pytest.mark.asyncio(scope="session")
@@ -211,7 +252,7 @@ async def test_cache():
 
 @pytest.mark.asyncio(scope="session")
 async def test_run_async_in_parallel():
-    
+
     async def async_function(i):
         await asyncio.sleep(1)
         return i

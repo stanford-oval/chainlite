@@ -6,30 +6,40 @@ from chainlite import (
 )
 from chainlite.llm_generate import ToolOutput
 
-test_engine = "gpt-4o-august"
 
-
-# @tool
 def get_current_weather(location: str):
-    """Get the current weather in a given location"""
+    """
+    Get the current weather in a given location.
+
+    Parameters
+    ----------
+    location : str
+        The location for which to get the current weather.
+
+    Returns
+    -------
+    str
+        A string describing the current weather in the specified location.
+    """
+
     if "boston" in location.lower():
         return "The weather is 12F"
 
 
-# @tool
 def add(a: int, b: int) -> int:
     """Adds a and b."""
     return a + b
 
 
 @pytest.mark.asyncio(scope="session")
-async def test_function_calling():
+@pytest.mark.parametrize("engine", ["gpt-4o-openai", "gpt-4o-azure"])
+async def test_function_calling(engine):
     test_tool_chain = llm_generation_chain(
         "tool.prompt",
-        engine=test_engine,
+        engine=engine,
         max_tokens=100,
         tools=[get_current_weather, add],
-        # force_skip_cache=True,
+        force_skip_cache=True,
     )
     # No function calling done, just output text
     text_output, tool_outputs = await test_tool_chain.ainvoke(
@@ -57,13 +67,14 @@ async def test_function_calling():
 
 
 @pytest.mark.asyncio(scope="session")
-async def test_forced_function_calling():
+@pytest.mark.parametrize("engine", ["gpt-4o-openai", "gpt-4o-azure"])
+async def test_forced_function_calling(engine):
     test_tool_chain = llm_generation_chain(
         "tool.prompt",
-        engine=test_engine,
+        engine=engine,
         max_tokens=100,
         tools=[get_current_weather, add],
-        # force_skip_cache=True,
+        force_skip_cache=True,
         force_tool_calling=True,
     )
 
