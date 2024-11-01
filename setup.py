@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="chainlite",
-    version="0.3.1",
+    version="0.3.2",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -20,7 +20,8 @@ setup(
         "langsmith==0.1.137",
         "langgraph-checkpoint==2.0.1",
         "langgraph-sdk==0.1.33",
-        "litellm==1.49.5",
+        "litellm==1.51.2",
+        "numpydoc", # needed for function calling with LiteLLM
         "grandalf",  # to visualize LangGraph graphs
         "pydantic>=2.5",
         "redis[hiredis]",

@@ -8,11 +8,11 @@ import os
 import random
 import re
 from datetime import datetime
+import litellm
 from rich import print as pprint
 from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
-from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -24,6 +24,7 @@ from pydantic import BaseModel
 
 from chainlite.llm_config import GlobalVars
 
+from .chat_lite_llm import ChatLiteLLM
 from .load_prompt import load_fewshot_prompt_template
 from .utils import get_logger
 
@@ -154,8 +155,10 @@ class ChainLogHandler(AsyncCallbackHandler):
                     response = response[0]
                 elif not response[0] and response[1]:
                     response = response[1]
-            GlobalVars.prompt_logs[run_id]["output"] = str(
-                response
+            GlobalVars.prompt_logs[run_id][
+                "output"
+            ] = (
+                response.__repr__()
             )  # convert to str because output might be a Pydantic object (if `pydantic_class` is provided in `llm_generation_chain()`)
 
 
@@ -372,23 +375,21 @@ def llm_generation_chain(
     model = llm_resource["engine_map"][engine]
 
     # ChatLiteLLM expects these parameters in a separate dictionary for some reason
-    model_kwargs = {"top_p": top_p, "stop": stop_tokens}
-    if "api_version" in llm_resource:
-        model_kwargs["api_version"] = llm_resource["api_version"]
+    model_kwargs = {}
 
-    # TODO remove these if LiteLLM fixes their HuggingFace TGI interface
+    # TODO move these to ChatLiteLLM
     if engine in GlobalVars.local_engine_set:
         if temperature > 0:
             model_kwargs["do_sample"] = True
         else:
             model_kwargs["do_sample"] = False
         if top_p == 1:
-            model_kwargs["top_p"] = None
+            top_p = None
 
     if model.startswith("mistral/"):
         # Mistral API expects top_p to be 1 when greedy decoding
         if temperature == 0:
-            model_kwargs["top_p"] = 1
+            top_p = 1
 
     is_distilled = (
         "prompt_format" in llm_resource and llm_resource["prompt_format"] == "distilled"
@@ -414,6 +415,14 @@ def llm_generation_chain(
             },
         }
 
+    if tools:
+        function_json = [
+            {"type": "function", "function": litellm.utils.function_to_dict(t)}
+            for t in tools
+        ]
+        model_kwargs["tools"] = function_json
+        model_kwargs["tool_choice"] = "required" if force_tool_calling else "auto"
+
     callbacks = []
     if progress_bar_desc:
         cb = ProgbarHandler(progress_bar_desc)
@@ -421,22 +430,21 @@ def llm_generation_chain(
 
     should_cache = (temperature == 0) and not force_skip_cache
     llm = ChatLiteLLM(
-        model_kwargs=model_kwargs,
+        model=model,
         api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
         api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
+        api_version=(
+            llm_resource["api_version"] if "api_version" in llm_resource else None
+        ),
         cache=should_cache,
-        model_name=model,
         max_tokens=max_tokens,
         temperature=temperature,
+        top_p=top_p,
+        stop=stop_tokens,
         callbacks=callbacks,
+        model_kwargs=model_kwargs,
     )
-    if tools:
-        if force_tool_calling:
-            llm = llm.bind_tools(tools=tools, tool_choice="required")
-        else:
-            llm = llm.bind_tools(tools=tools)
 
-    # for variable, value in bind_prompt_values.keys():
     if len(bind_prompt_values) > 0:
         prompt = prompt.partial(**bind_prompt_values)
 

@@ -136,7 +136,9 @@ def load_config_from_file(config_file: str) -> None:
         config.get("prompt_logging", {}).get("prompts_to_skip", [])
     )
 
-    litellm.set_verbose = config.get("litellm_set_verbose", False)
+    set_verbose = config.get("litellm_set_verbose", False)
+    if set_verbose:
+        os.environ["LITELLM_LOG"] = "DEBUG"
 
     GlobalVars.all_llm_endpoints = config.get("llm_endpoints", [])
     for a in GlobalVars.all_llm_endpoints:

@@ -4,6 +4,11 @@ from typing import Optional
 
 from tqdm import tqdm
 
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
+logging.getLogger("LiteLLM Proxy").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 def get_logger(name: Optional[str] = None):
     logger = logging.getLogger(name)
