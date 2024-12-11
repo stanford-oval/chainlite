@@ -52,7 +52,7 @@ async def run_async_in_parallel(
 
     ret = [None] * len(tasks)
     for future in tqdm(
-        asyncio.as_completed(tasks), total=len(tasks), smoothing=0, desc=desc
+        asyncio.as_completed(tasks), total=len(tasks), smoothing=0, desc=desc, mininterval=0.5
     ):
         original_index, result, error = await future
         if error:
