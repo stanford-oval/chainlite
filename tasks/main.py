@@ -79,3 +79,10 @@ def tests(c, log_level="info", parallel=False):
     pytest_command += " ".join(test_files)
 
     c.run(pytest_command, pty=True)
+
+
+@task
+def format_code(c):
+    """Format code using black and isort"""
+    c.run("isort --profile black .", pty=True)
+    c.run("black .", pty=True)

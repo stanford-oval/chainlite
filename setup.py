@@ -21,20 +21,21 @@ setup(
         "langgraph-checkpoint==2.0.1",
         "langgraph-sdk==0.1.33",
         "litellm==1.51.2",
-        "numpydoc", # needed for function calling with LiteLLM
+        "numpydoc",  # needed for function calling with LiteLLM
         "grandalf",  # to visualize LangGraph graphs
         "pydantic>=2.5",
         "redis[hiredis]",
     ],
     extras_require={
         "dev": [
-            "invoke",
-            "pytest",
-            "pytest-asyncio",
-            "setuptools",
-            "wheel",
-            "twine",
-            "isort",
+            "invoke",  # for running tasks and scripts
+            "pytest",  # for testing
+            "pytest-asyncio",  # for testing async code
+            "setuptools",  # for building wheels
+            "wheel",  # for building wheels
+            "twine",  # for uploading to PyPI
+            "isort",  # for code formatting
+            "black",  # for code formatting
         ],
     },
     classifiers=[
