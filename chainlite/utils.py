@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from typing import Any, Optional
+
 import rich
-from tqdm import tqdm
 from langchain_core.runnables import chain
+from tqdm import tqdm
 
 logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
@@ -52,7 +53,12 @@ async def run_async_in_parallel(
 
     ret = [None] * len(tasks)
     for future in tqdm(
-        asyncio.as_completed(tasks), total=len(tasks), smoothing=0, desc=desc, mininterval=0.5
+        asyncio.as_completed(tasks),
+        total=len(tasks),
+        smoothing=0,
+        desc=desc,
+        mininterval=0.5,
+        miniters=1,
     ):
         original_index, result, error = await future
         if error:

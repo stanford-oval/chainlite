@@ -1,8 +1,6 @@
 import pytest
-from chainlite import (
-    get_logger,
-    llm_generation_chain,
-)
+
+from chainlite import get_logger, llm_generation_chain
 
 logger = get_logger(__name__)
 
@@ -23,7 +21,7 @@ async def test_llm_generate():
     assert response is not None, "The response should not be None"
     assert isinstance(response, str), "The response should be a string"
     assert len(response) > 0, "The response should not be empty"
-    
+
     assert len(logprobs) == 5
     for i in range(len(logprobs)):
         assert "top_logprobs" in logprobs[i]

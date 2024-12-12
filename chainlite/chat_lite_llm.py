@@ -19,6 +19,7 @@ from typing import (
     Union,
 )
 
+import litellm
 from langchain_core.callbacks import (
     AsyncCallbackManagerForLLMRun,
     CallbackManagerForLLMRun,
@@ -47,16 +48,11 @@ from langchain_core.messages import (
     ToolCallChunk,
     ToolMessage,
 )
-from langchain_core.outputs import (
-    ChatGeneration,
-    ChatGenerationChunk,
-    ChatResult,
-)
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.utils import pre_init
 from langchain_core.utils.function_calling import convert_to_openai_tool
-import litellm
 from pydantic import BaseModel, Field
 
 from chainlite.llm_config import GlobalVars

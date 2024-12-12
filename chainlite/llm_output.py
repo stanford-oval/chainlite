@@ -1,8 +1,14 @@
 import json
 import re
-from chainlite import chain, get_logger
+from typing import Callable
+
+from langchain_core.runnables import chain
+from pydantic import BaseModel
+
+from chainlite.utils import get_logger
 
 logger = get_logger(__name__)
+
 
 @chain
 def extract_tag_from_llm_output(
@@ -99,6 +105,7 @@ def string_to_indices(llm_output: str, llm_output_start_index: int) -> list[int]
             result.append(int(item) - llm_output_start_index)
     return result
 
+
 @chain
 def string_to_json(llm_output: str):
     """
@@ -118,3 +125,27 @@ def string_to_json(llm_output: str):
         # Handle JSON decoding error
         logger.exception(f"Error decoding JSON: {e}")
         return None
+
+
+@chain
+def string_to_pydantic_object(llm_output: str, pydantic_class: BaseModel):
+    try:
+        return pydantic_class.model_validate(json.loads(llm_output))
+    except Exception as e:
+        logger.exception(
+            f"Error decoding JSON: {e}. This might be resolved by increasing `max_tokens`"
+        )
+        logger.error(f"LLM output: {llm_output}")
+        return None
+
+
+class ToolOutput(BaseModel):
+    function: Callable
+    kwargs: dict
+
+    def __repr__(self):
+        return (
+            f"{self.function.__name__}("
+            + ", ".join([f"{k}={repr(v)}" for k, v in self.kwargs.items()])
+            + ")"
+        )

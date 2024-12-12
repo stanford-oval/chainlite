@@ -1,9 +1,6 @@
 import pytest
 
-from chainlite import (
-    llm_generation_chain,
-    write_prompt_logs_to_file,
-)
+from chainlite import llm_generation_chain, write_prompt_logs_to_file
 from chainlite.llm_generate import ToolOutput
 
 
