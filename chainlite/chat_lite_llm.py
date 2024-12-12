@@ -221,7 +221,6 @@ class ChatLiteLLM(BaseChatModel):
     model_kwargs: Dict[str, Any] = Field(default_factory=dict)
     top_p: Optional[float] = None
     top_k: Optional[int] = None
-    n: int = 1
     max_tokens: Optional[int] = None
     template_file: Optional[str] = None
     distillation_instructions: Optional[str] = None
@@ -235,7 +234,6 @@ class ChatLiteLLM(BaseChatModel):
             "model": self.model,
             "max_tokens": self.max_tokens,
             "stream": self.streaming,
-            "n": self.n,
             "temperature": self.temperature,
             "model": self.model,
             "api_base": self.api_base,
@@ -422,7 +420,6 @@ class ChatLiteLLM(BaseChatModel):
             "temperature": self.temperature,
             "top_p": self.top_p,
             "top_k": self.top_k,
-            "n": self.n,
         }
 
     @property
