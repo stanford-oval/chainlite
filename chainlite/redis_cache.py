@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 import redis.asyncio as redis
 from langchain.globals import set_llm_cache

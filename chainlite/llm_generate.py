@@ -3,15 +3,19 @@ import os
 import random
 import re
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, List, Optional
 from uuid import UUID
 
 import litellm
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.outputs import LLMResult
-from langchain_core.runnables import Runnable, chain
-from pydantic import BaseModel
+from langchain_core.runnables import (
+    RunnableLambda,
+    RunnablePassthrough,
+    Runnable,
+    chain,
+)
 from tqdm.auto import tqdm
 
 from chainlite.chain_log_handler import ChainLogHandler
@@ -19,7 +23,8 @@ from chainlite.chat_lite_llm import ChatLiteLLM
 from chainlite.llm_config import GlobalVars, load_config_from_file
 from chainlite.llm_output import ToolOutput, string_to_pydantic_object
 from chainlite.load_prompt import load_fewshot_prompt_template
-from chainlite.utils import get_logger
+from chainlite.utils import get_logger, validate_function
+from chainlite.redis_cache import redis_client  # To set up the cache
 
 logger = get_logger(__name__)
 
@@ -199,56 +204,8 @@ async def return_response_and_logprobs(llm_output):
     return response, llm_output.response_metadata.get("logprobs")
 
 
-def llm_generation_chain(
-    template_file: str,
-    engine: str,
-    max_tokens: int,
-    temperature: float = 0.0,
-    stop_tokens: Optional[List[str]] = None,
-    top_p: float = 0.9,
-    output_json: bool = False,
-    pydantic_class: BaseModel = None,
-    template_blocks: list[tuple[str]] = None,
-    keep_indentation: bool = False,
-    progress_bar_desc: Optional[str] = None,
-    additional_postprocessing_runnable: Runnable = None,
-    tools: Optional[list[Callable]] = None,
-    force_tool_calling: bool = False,
-    return_top_logprobs: int = 0,
-    bind_prompt_values: Dict = {},
-    force_skip_cache: bool = False,
-) -> Runnable:
-    """
-    Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
-
-    Parameters:
-        template_file (str): The path to the generation template file. Must be a .prompt file.
-        engine (str): The language model engine to employ. An engine represents the left-hand value of an `engine_map` in the ChainLite config file.
-        max_tokens (int): The upper limit of tokens the LLM can generate.
-        temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
-        stop_tokens (List[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
-        top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
-        output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
-            For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
-        pydantic_class (BaseModel, optional): If provided, will parse the output to match this Pydantic class. Only models like gpt-4o-mini and gpt-4o-2024-08-06
-            and newer are supported
-        template_blocks: If provided, will use this instead of `template_file`. The format is [(role, string)] where role is one of "instruction", "input", "output"
-        keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
-        progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
-        additional_postprocessing_runnable (Runnable, optional): If provided, will be applied to the output of LLM generation, and the final output will be logged
-        tools (List[Callable], optional): If provided, will be made available to the underlying LLM, to optionally output it for function calling. Defaults to None.
-        force_tool_calling (bool, optional): If True, will force the LLM to output the tools for function calling. Defaults to False.
-        return_top_logprobs (int, optional): If > 0, will return the top logprobs for each token, so the output will be Tuple[str, dict]. Defaults to 0.
-        bind_prompt_values (Dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
-        force_skip_cache (bool, optional): If True, will force the LLM to skip the cache, and the new value won't be saved in cache either. Defaults to False.
-
-    Returns:
-        Runnable: The language model generation chain
-
-    Raises:
-        IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
-    """
-
+@validate_function()
+def pick_llm_resource(engine: str) -> dict:
     load_config_from_file()
     if not GlobalVars.all_llm_endpoints:
         raise ValueError(
@@ -266,6 +223,77 @@ def llm_generation_chain(
             f"Could not find any matching engines for {engine}. Please check that llm_config.yaml is configured correctly and that the API key is set in the terminal before running this script."
         )
 
+    llm_resource = random.choice(potential_llm_resources)
+    return llm_resource
+
+
+def convert_to_structured_output_prompt(x: dict):
+    main_llm_input = x["main_llm_input"]
+    main_llm_output = x["main_llm_output"]
+    return f"""An LLM was given these inputs:
+    {main_llm_input}
+    
+
+    And produced this output:
+    {main_llm_output}
+
+    Convert this output to the expected JSON structured format."""
+
+
+@validate_function()
+def llm_generation_chain(
+    template_file: str,
+    engine: str,
+    max_tokens: int,
+    temperature: float = 0.0,
+    stop_tokens: Optional[List[str]] = None,
+    top_p: float = 0.9,
+    output_json: bool = False,
+    pydantic_class: Any = None,
+    engine_for_structured_output: Optional[str] = None,
+    template_blocks: Optional[list[tuple[str, str]]] = None,
+    keep_indentation: bool = False,
+    progress_bar_desc: Optional[str] = None,
+    additional_postprocessing_runnable: Optional[Runnable] = None,
+    tools: Optional[list[Callable]] = None,
+    force_tool_calling: bool = False,
+    return_top_logprobs: int = 0,
+    bind_prompt_values: Optional[dict] = None,
+    force_skip_cache: bool = False,
+) -> Runnable:
+    """
+    Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
+
+    Parameters:
+        template_file (str): The path to the generation template file. Must be a .prompt file.
+        engine (str): The language model engine to employ. An engine represents the left-hand value of an `engine_map` in the ChainLite config file.
+        max_tokens (int): The upper limit of tokens the LLM can generate.
+        temperature (float, optional): Dictates the randomness in the generation. Must be >= 0.0. Defaults to 0.0 (deterministic).
+        stop_tokens (List[str], optional): The list of tokens causing the LLM to stop generating. Defaults to None.
+        top_p (float, optional): The max cumulative probability for nucleus sampling, must be within 0.0 - 1.0. Defaults to 0.9.
+        output_json (bool, optional): If True, asks the LLM API to output a JSON. This depends on the underlying model to support.
+            For example, GPT-4, GPT-4o and newer GPT-3.5-Turbo models support it, but require the word "json" to be present in the input. Defaults to False.
+        pydantic_class (BaseModel, optional): If provided, will parse the output to match this Pydantic class. Only models like gpt-4o-mini and gpt-4o-2024-08-06
+            and newer are supported
+        engine_for_structured_output (str, optional): If provided, will use this engine to convert the base `engine`'s output to the expected json or Pydantic class.
+            Helpful for when `engine` does not support structured output. Defaults to None.
+        template_blocks: If provided, will use this instead of `template_file`. The format is [(role, string)] where role is one of "instruction", "input", "output"
+        keep_indentation (bool, optional): If True, will keep indentations at the beginning of each line in the template_file. Defaults to False.
+        progress_bar_name (str, optional): If provided, will display a `tqdm` progress bar using this name
+        additional_postprocessing_runnable (Runnable, optional): If provided, will be applied to the output of LLM generation, and the final output will be logged
+        tools (List[Callable], optional): If provided, will be made available to the underlying LLM, to optionally output it for function calling. Defaults to None.
+        force_tool_calling (bool, optional): If True, will force the LLM to output the tools for function calling. Defaults to False.
+        return_top_logprobs (int, optional): If > 0, will return the top logprobs for each token, so the output will be Tuple[str, dict]. Defaults to 0.
+        bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
+        force_skip_cache (bool, optional): If True, will force the LLM to skip the cache, and the new value won't be saved in cache either. Defaults to False.
+
+    Returns:
+        Runnable: The language model generation chain
+
+    Raises:
+        IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
+    """
+
     if (
         sum(
             [
@@ -280,8 +308,17 @@ def llm_generation_chain(
         raise ValueError(
             "At most one of `pydantic_class`, `output_json`, `return_top_logprobs` and `tools` can be used."
         )
-    llm_resource = random.choice(potential_llm_resources)
+    if return_top_logprobs > 0 or tools:
+        if engine_for_structured_output:
+            raise ValueError(
+                "engine_for_structured_output cannot be used with return_top_logprobs or tools."
+            )
+    if engine_for_structured_output and not pydantic_class and not output_json:
+        raise ValueError(
+            "engine_for_structured_output requires either pydantic_class or output_json to be set."
+        )
 
+    llm_resource = pick_llm_resource(engine)
     model = llm_resource["engine_map"][engine]
 
     # ChatLiteLLM expects these parameters in a separate dictionary for some reason
@@ -301,6 +338,8 @@ def llm_generation_chain(
         if temperature == 0:
             top_p = 1
 
+    should_cache = (temperature == 0) and not force_skip_cache
+
     is_distilled = (
         "prompt_format" in llm_resource and llm_resource["prompt_format"] == "distilled"
     )
@@ -311,19 +350,63 @@ def llm_generation_chain(
         is_distilled=is_distilled,
         keep_indentation=keep_indentation,
     )
-    if output_json:
-        model_kwargs["response_format"] = {"type": "json_object"}
-    elif pydantic_class:
-        model_kwargs["response_format"] = {
-            "type": "json_schema",
-            "json_schema": {
-                "schema": _ensure_strict_json_schema(
-                    pydantic_class.model_json_schema(), path=()
-                ),
-                "name": pydantic_class.__name__,
-                "strict": True,
-            },
-        }
+
+    if engine_for_structured_output:
+        # Apply the structured output-related settings to the structured output engine
+        structured_model_kwargs = model_kwargs.copy()
+        if output_json:
+            structured_model_kwargs["response_format"] = {"type": "json_object"}
+        elif pydantic_class:
+            structured_model_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "schema": _ensure_strict_json_schema(
+                        pydantic_class.model_json_schema(), path=()
+                    ),
+                    "name": pydantic_class.__name__,
+                    "strict": True,
+                },
+            }
+        structure_output_resource = pick_llm_resource(engine_for_structured_output)
+        structured_output_llm = ChatLiteLLM(
+            model=structure_output_resource["engine_map"][engine_for_structured_output],
+            api_base=(
+                structure_output_resource["api_base"]
+                if "api_base" in structure_output_resource
+                else None
+            ),
+            api_key=(
+                structure_output_resource["api_key"]
+                if "api_key" in structure_output_resource
+                else None
+            ),
+            api_version=(
+                structure_output_resource["api_version"]
+                if "api_version" in structure_output_resource
+                else None
+            ),
+            cache=should_cache,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            stop=stop_tokens,
+            model_kwargs=structured_model_kwargs,
+        )
+    else:
+        # Apply the structured output-related settings to the main engine
+        if output_json:
+            model_kwargs["response_format"] = {"type": "json_object"}
+        elif pydantic_class:
+            model_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "schema": _ensure_strict_json_schema(
+                        pydantic_class.model_json_schema(), path=()
+                    ),
+                    "name": pydantic_class.__name__,
+                    "strict": True,
+                },
+            }
 
     if return_top_logprobs > 0:
         model_kwargs["logprobs"] = True
@@ -342,8 +425,7 @@ def llm_generation_chain(
         cb = ProgbarHandler(progress_bar_desc)
         callbacks.append(cb)
 
-    should_cache = (temperature == 0) and not force_skip_cache
-    llm = ChatLiteLLM(
+    main_llm = ChatLiteLLM(
         model=model,
         api_base=llm_resource["api_base"] if "api_base" in llm_resource else None,
         api_key=llm_resource["api_key"] if "api_key" in llm_resource else None,
@@ -359,10 +441,20 @@ def llm_generation_chain(
         model_kwargs=model_kwargs,
     )
 
-    if len(bind_prompt_values) > 0:
+    if engine_for_structured_output:
+        main_llm = (
+            {
+                "main_llm_output": main_llm | StrOutputParser(),
+                "main_llm_input": RunnablePassthrough(),
+            }
+            | RunnableLambda(convert_to_structured_output_prompt)
+            | structured_output_llm
+        )
+
+    if bind_prompt_values:
         prompt = prompt.partial(**bind_prompt_values)
 
-    llm_generation_chain = prompt | llm
+    llm_generation_chain = prompt | main_llm
     if tools:
         llm_generation_chain = llm_generation_chain | return_response_and_tool.bind(
             tools=tools, force_tool_calling=force_tool_calling

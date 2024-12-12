@@ -2,6 +2,7 @@ import asyncio
 import logging
 from typing import Any, Optional
 
+from pydantic import validate_call
 import rich
 from langchain_core.runnables import chain
 from tqdm import tqdm
@@ -77,3 +78,10 @@ def pprint_chain(_dict: Any) -> Any:
     """
     rich.print(_dict)
     return _dict
+
+
+def validate_function():
+    """A shortcut decorator"""
+    return validate_call(
+        validate_return=True, config=dict(arbitrary_types_allowed=True)
+    )

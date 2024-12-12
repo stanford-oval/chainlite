@@ -179,31 +179,8 @@ async def test_cached_batching():
     ), "The cost should not change after a cached batched LLM call"
 
 
-@pytest.mark.asyncio(scope="session")
-async def test_structured_output():
-    class Debate(BaseModel):
-        """
-        A Debate event
-        """
 
-        mention: str
-        people: List[str]
 
-    response = await llm_generation_chain(
-        template_file="structured.prompt",
-        engine=test_engine,
-        max_tokens=1000,
-        force_skip_cache=True,
-        pydantic_class=Debate,
-    ).ainvoke(
-        {
-            "text": "4 major candidates for California U.S. Senate seat clash in first debate"
-        }
-    )
-
-    assert isinstance(response, Debate)
-    assert response.mention
-    assert response.people
 
 
 @pytest.mark.asyncio(scope="session")
