@@ -151,7 +151,7 @@ async def test_batching():
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
         engine=test_engine,
-        max_tokens=100,
+        max_tokens=10,
         temperature=0.1,
         progress_bar_desc="test2",
     ).abatch(chain_inputs)
