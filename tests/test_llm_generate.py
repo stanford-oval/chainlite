@@ -179,10 +179,6 @@ async def test_cached_batching():
     ), "The cost should not change after a cached batched LLM call"
 
 
-
-
-
-
 @pytest.mark.asyncio(scope="session")
 async def test_o1_model():
     response = await llm_generation_chain(
@@ -243,3 +239,21 @@ async def test_run_async_in_parallel():
         async_function, test_inputs, max_concurrency, desc
     )
     assert ret == list(test_inputs)
+
+
+@pytest.mark.asyncio(scope="session")
+async def test_o1_reasoning_effort():
+    for reasoning_effort in ["low", "medium", "high"]:
+        start_time = time.time()
+        response = await llm_generation_chain(
+            template_file="tests/reasoning.prompt",
+            engine="o1",
+            max_tokens=2000,
+            force_skip_cache=True,
+            reasoning_effort=reasoning_effort,
+        ).ainvoke({})
+        print(response)
+        print(
+            f"Reasoning effort: {reasoning_effort}, Time taken: {time.time() - start_time}"
+        )
+        assert response

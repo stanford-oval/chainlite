@@ -56,15 +56,18 @@ def start_redis(c, redis_port: int = DEFAULT_REDIS_PORT):
 
 
 @task(pre=[load_api_keys, start_redis], aliases=["test"])
-def tests(c, log_level="info", parallel=False):
+def tests(c, log_level="info", parallel=False, test_file: str = None):
     """Run tests using pytest"""
 
-    test_files = [
-        "./tests/test_llm_generate.py",
-        "./tests/test_llm_structured_output.py",
-        "./tests/test_function_calling.py",
-        "./tests/test_logprobs.py",
-    ]
+    if test_file:
+        test_files = [f"./tests/{test_file}"]
+    else:
+        test_files = [
+            "./tests/test_llm_generate.py",
+            "./tests/test_llm_structured_output.py",
+            "./tests/test_function_calling.py",
+            "./tests/test_logprobs.py",
+        ]
 
     pytest_command = (
         f"pytest "

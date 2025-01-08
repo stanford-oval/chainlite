@@ -58,6 +58,7 @@ llm_generation_chain(
     return_top_logprobs: int = 0,
     bind_prompt_values: Optional[dict] = None,
     force_skip_cache: bool = False,
+    reasoning_effort: Optional[str] = None,
 ) # returns a LangChain chain the accepts inputs and returns a string as output
 load_config_from_file(config_file: str)
 pprint_chain() # can be used to print inputs or outputs of a LangChain chain.

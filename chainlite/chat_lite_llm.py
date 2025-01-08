@@ -56,6 +56,7 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel, Field
 
 from chainlite.llm_config import GlobalVars
+from chainlite.llm_output import ToolOutput
 
 logger = logging.getLogger(__name__)
 

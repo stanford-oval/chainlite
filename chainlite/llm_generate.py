@@ -260,6 +260,7 @@ def llm_generation_chain(
     return_top_logprobs: int = 0,
     bind_prompt_values: Optional[dict] = None,
     force_skip_cache: bool = False,
+    reasoning_effort: Optional[str] = None,
 ) -> Runnable:
     """
     Constructs a LangChain generation chain for LLM response utilizing LLM APIs prescribed in the ChainLite config file.
@@ -286,6 +287,7 @@ def llm_generation_chain(
         return_top_logprobs (int, optional): If > 0, will return the top logprobs for each token, so the output will be Tuple[str, dict]. Defaults to 0.
         bind_prompt_values (dict, optional): A dictionary containing {Variable: str : Value}. Binds values to the prompt. Additional variables can be provided when the chain is called. Defaults to {}.
         force_skip_cache (bool, optional): If True, will force the LLM to skip the cache, and the new value won't be saved in cache either. Defaults to False.
+        reasoning_effort (str, optional): The reasoning effort to use for reasoning models like o1. Must be one of "low", "medium", "high". Defaults to medium. Cache is not sensitive to the value of this parameter, meaning that the cache is shared across reasoning effort values.
 
     Returns:
         Runnable: The language model generation chain
@@ -293,6 +295,13 @@ def llm_generation_chain(
     Raises:
         IndexError: Raised when no engine matches the provided string in the LLM APIs configured, or the API key is not found.
     """
+
+    assert reasoning_effort in [
+        None,
+        "low",
+        "medium",
+        "high",
+    ], f"Invalid reasoning_effort: {reasoning_effort}. Valid values are 'low', 'medium', 'high'."
 
     if (
         sum(
@@ -411,6 +420,10 @@ def llm_generation_chain(
     if return_top_logprobs > 0:
         model_kwargs["logprobs"] = True
         model_kwargs["top_logprobs"] = return_top_logprobs
+
+    if reasoning_effort:
+        # only include it when explicitly set, because most models do not support it
+        model_kwargs["reasoning_effort"] = reasoning_effort
 
     if tools:
         function_json = [

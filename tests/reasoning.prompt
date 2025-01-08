@@ -1,0 +1,5 @@
+# instruction
+
+# input
+Write a Python program that counts the number of substrings in a given string that are palindromes.
+A palindrome is a string that reads the same forwards and backwards. The program should take a string as input and output the number of palindromic substrings in the string.
