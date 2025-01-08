@@ -12,7 +12,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tqdm",
-        "langchain==0.3.4",
+        "langchain==0.3.5",
         "langchain-community==0.3.3",
         "langchain-core==0.3.12",
         "langchain-text-splitters==0.3.0",
@@ -20,7 +20,7 @@ setup(
         "langsmith==0.1.137",
         "langgraph-checkpoint==2.0.1",
         "langgraph-sdk==0.1.33",
-        "litellm==1.51.2",
+        "litellm==1.57.1",
         "numpydoc",  # needed for function calling with LiteLLM
         "grandalf",  # to visualize LangGraph graphs
         "pydantic>=2.5",
