@@ -219,19 +219,20 @@ def _prompt_blocks_to_chat_messages(
         )
         assert block_type == "instruction"
 
-    distillation_instruction = (
-        (
-            add_constants_to_template(
-                ChatPromptTemplate.from_template(
-                    distillation_instruction, template_format="jinja2"
-                )
-            )
-        )
-        .invoke({})
-        .messages[0]
-        .content
-    )  # distillation prompts should not contain any variables other than template constants like {{today}}
-    # print("distillation_instruction = ", distillation_instruction)
+    distillation_instruction = ""
+    # (
+    #     (
+    #         add_constants_to_template(
+    #             ChatPromptTemplate.from_template(
+    #                 distillation_instruction, template_format="jinja2"
+    #             )
+    #         )
+    #     )
+    #     # .invoke({})
+    #     # .messages[0]
+    #     # .content
+    # )  # distillation prompts should not contain any variables other than template constants like {{today}}
+    # # print("distillation_instruction = ", distillation_instruction)
 
     return chat_prompt_template, distillation_instruction
 
