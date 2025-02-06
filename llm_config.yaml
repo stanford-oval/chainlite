@@ -44,6 +44,7 @@ llm_endpoints:
       gpt-4o: gpt-4o # you can leave it to OpenAI to select the latest model version for you
       gpt-4o-another-one: gpt-4o # "model" names, which are on the right side-hand of a mapping, do not need to be unique
       o1: o1
+      o3-mini: o3-mini
 
 # Example of OpenAI fine-tuned model
   - api_base: https://api.openai.com/v1

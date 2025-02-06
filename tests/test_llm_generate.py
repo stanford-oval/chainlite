@@ -180,10 +180,11 @@ async def test_cached_batching():
 
 
 @pytest.mark.asyncio(scope="session")
-async def test_o1_model():
+@pytest.mark.parametrize("engine", ["o1", "o3-mini"])
+async def test_reasoning_models(engine):
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
-        engine="o1",
+        engine=engine,
         max_tokens=1000,
         temperature=0.01,
     ).ainvoke({"topic": "A strawberry."})
