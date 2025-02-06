@@ -6,6 +6,11 @@ from datetime import datetime
 from typing import Any, Callable, List, Optional
 from uuid import UUID
 
+import warnings
+from pydantic import PydanticDeprecatedSince20
+
+warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
+
 import litellm
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
@@ -27,6 +32,7 @@ from chainlite.utils import get_logger, validate_function
 from chainlite.redis_cache import redis_client  # To set up the cache
 
 logger = get_logger(__name__)
+
 
 # This regex pattern aims to capture up through the last '.', '!', '?',
 # and includes an optional ending quotation mark '"'.

@@ -1,6 +1,10 @@
 import os
 import threading
 
+import warnings
+from pydantic import PydanticDeprecatedSince20
+warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
+
 import litellm
 import yaml
 

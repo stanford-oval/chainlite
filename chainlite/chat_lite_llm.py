@@ -19,6 +19,10 @@ from typing import (
     Union,
 )
 
+import warnings
+from pydantic import PydanticDeprecatedSince20
+warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
+
 import litellm
 from langchain_core.callbacks import (
     AsyncCallbackManagerForLLMRun,
@@ -72,8 +76,6 @@ def _create_retry_decorator(
     ] = None,
 ) -> Callable[[Any], Any]:
     """Returns a tenacity retry decorator, preconfigured to handle PaLM exceptions"""
-    import litellm
-
     errors = [
         litellm.Timeout,
         litellm.APIError,
