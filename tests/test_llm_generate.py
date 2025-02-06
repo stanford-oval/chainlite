@@ -229,17 +229,18 @@ async def test_cache():
 @pytest.mark.asyncio(scope="session")
 async def test_run_async_in_parallel():
 
-    async def async_function(i):
+    async def async_function(i, j):
         await asyncio.sleep(1)
         return i
 
-    test_inputs = range(10)
+    test_inputs1 = range(10)
+    test_inputs2 = range(10, 20)
     max_concurrency = 5
     desc = "test"
     ret = await run_async_in_parallel(
-        async_function, test_inputs, max_concurrency, desc
+        async_function, test_inputs1, test_inputs2, max_concurrency=max_concurrency, desc=desc
     )
-    assert ret == list(test_inputs)
+    assert ret == list(test_inputs1)
 
 
 @pytest.mark.asyncio(scope="session")
