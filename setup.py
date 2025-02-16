@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="chainlite",
-    version="0.3.7",
+    version="0.3.8",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -12,15 +12,10 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tqdm",
-        "langchain==0.3.17",
-        "langchain-community==0.3.3",
-        "langchain-core==0.3.33",
-        "langchain-text-splitters==0.3.5",
-        "langgraph==0.2.39",
-        "langsmith==0.1.137",
-        "langgraph-checkpoint==2.0.1",
-        "langgraph-sdk==0.1.33",
-        "litellm==1.60.4",
+        "langchain>=0.3",
+        "langchain-community>=0.3",
+        "langgraph>=0.2",
+        "litellm==1.60.4", # the unified interface to LLM APIs
         "numpydoc",  # needed for function calling with LiteLLM
         "grandalf",  # to visualize LangGraph graphs
         "pydantic>=2.5",
