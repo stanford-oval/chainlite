@@ -74,7 +74,8 @@ def tests(c, log_level="info", parallel=False, test_file: str = None):
         f"--log-cli-level={log_level} "
         "-rP "
         "--color=yes "
-        "--disable-warnings "
+        # "--disable-warnings "
+        "-x "  # Stop after first failure
     )
 
     if parallel:

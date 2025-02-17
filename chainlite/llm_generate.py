@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import re
 from datetime import datetime
 from typing import Any, Callable, List, Optional
 from uuid import UUID
@@ -11,7 +10,6 @@ from pydantic import PydanticDeprecatedSince20
 
 warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
 
-import litellm
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.outputs import LLMResult
@@ -25,20 +23,12 @@ from tqdm.auto import tqdm
 
 from chainlite.chain_log_handler import ChainLogHandler
 from chainlite.chat_lite_llm import ChatLiteLLM
-from chainlite.llm_config import GlobalVars, load_config_from_file
+from chainlite.llm_config import GlobalVars, initialize_llm_config
 from chainlite.llm_output import ToolOutput, string_to_pydantic_object
 from chainlite.load_prompt import load_fewshot_prompt_template
 from chainlite.utils import get_logger, validate_function
-from chainlite.redis_cache import redis_client  # To set up the cache
 
 logger = get_logger(__name__)
-
-
-# This regex pattern aims to capture up through the last '.', '!', '?',
-# and includes an optional ending quotation mark '"'.
-# It uses a lookahead to ensure it captures until the last such punctuation
-# possibly followed by a quotation mark.
-partial_sentence_regex = re.compile(r'([\s\S]*?[.!?]"?)(?=(?:[^.!?]*$))')
 
 
 def is_same_prompt(template_name_1: str, template_name_2: str) -> bool:
@@ -212,10 +202,10 @@ async def return_response_and_logprobs(llm_output):
 
 @validate_function()
 def pick_llm_resource(engine: str) -> dict:
-    load_config_from_file()
+    initialize_llm_config()
     if not GlobalVars.all_llm_endpoints:
         raise ValueError(
-            "No LLM API found. Make sure configuration and API_KEY files are set correctly, and that load_config_from_file() is called before using any other function."
+            "No LLM API found. Make sure configuration and API_KEY files are set correctly, and that initialize_llm_config() is called before using any other function."
         )
 
     # Decide which LLM resource to send this request to.
@@ -432,9 +422,10 @@ def llm_generation_chain(
         model_kwargs["reasoning_effort"] = reasoning_effort
 
     if tools:
+        from litellm.utils import function_to_dict
+
         function_json = [
-            {"type": "function", "function": litellm.utils.function_to_dict(t)}
-            for t in tools
+            {"type": "function", "function": function_to_dict(t)} for t in tools
         ]
         model_kwargs["tools"] = function_json
         model_kwargs["tool_choice"] = "required" if force_tool_calling else "auto"

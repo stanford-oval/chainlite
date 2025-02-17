@@ -3,17 +3,13 @@ import threading
 
 import warnings
 from pydantic import PydanticDeprecatedSince20
+
 warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
 
-import litellm
 import yaml
 
 from chainlite.load_prompt import initialize_jinja_environment
 from chainlite.threadsafe_dict import ThreadSafeDict
-
-litellm.drop_params = (
-    True  # Drops unsupported parameters for non-OpenAI APIs like TGI and Together.ai
-)
 
 
 class GlobalVars:
@@ -33,11 +29,29 @@ class GlobalVars:
 
 
 def get_all_configured_engines():
-    load_config_from_file()
+    initialize_llm_config()
     return GlobalVars.get_all_configured_engines()
 
 
-def load_config_from_file(config_file: str = "./llm_config.yaml") -> None:
+chainlite_initialized = False
+
+
+def initialize_llm_config(config_file: str = "./llm_config.yaml") -> None:
+    global chainlite_initialized
+    if chainlite_initialized:
+        return
+    chainlite_initialized = True
+
+    import litellm
+    from chainlite.redis_cache import init_redis_client
+    init_redis_client()
+
+
+    litellm.drop_params = True  # Drops unsupported parameters for non-OpenAI APIs like TGI and Together.ai
+    litellm.success_callback = [
+        track_cost_callback
+    ]  # Assign the cost callback function
+
     if GlobalVars.all_llm_endpoints is not None:
         # Configuration file is already loaded
         return
@@ -136,6 +150,8 @@ async def track_cost_callback(
     start_time,
     end_time,  # start/end time
 ):
+    from litellm import completion_cost
+
     try:
         if kwargs["cache_hit"]:
             # no cost because of caching
@@ -149,20 +165,14 @@ async def track_cost_callback(
             completion_response = kwargs["complete_streaming_response"]
             input_text = kwargs["messages"]
             output_text = completion_response["choices"][0]["message"]["content"]
-            response_cost = litellm.completion_cost(
+            response_cost = completion_cost(
                 model=kwargs["model"], messages=input_text, completion=output_text
             )
         elif kwargs["stream"] != True:
             # for non streaming responses
-            response_cost = litellm.completion_cost(
-                completion_response=completion_response
-            )
+            response_cost = completion_cost(completion_response=completion_response)
         if response_cost > 0:
             add_to_total_cost(response_cost)
     except:
         pass
         # This can happen for example because of local models
-
-
-# Assign the cost callback function
-litellm.success_callback = [track_cost_callback]

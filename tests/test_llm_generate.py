@@ -3,12 +3,10 @@ import random
 import string
 import time
 from datetime import datetime
-from typing import List
 from zoneinfo import ZoneInfo
 
 import pytest
 from langchain_core.runnables import RunnableLambda
-from pydantic import BaseModel
 
 from chainlite import (
     get_all_configured_engines,
@@ -20,11 +18,13 @@ from chainlite import (
 )
 from chainlite.llm_config import GlobalVars
 from chainlite.utils import run_async_in_parallel
+import time
+import subprocess
+import sys
+import pytest
 
 logger = get_logger(__name__)
 
-
-# load_config_from_file("./llm_config.yaml")
 
 chain_inputs = [
     {"topic": "Ice cream"},
@@ -34,6 +34,36 @@ chain_inputs = [
 ]
 
 test_engine = "gpt-4o-openai"
+
+
+def test_chainlite_import_time():
+    # Measure the import time of the chainlite module in a subprocess,
+    # using Python's -X importtime flag to get detailed import timing.
+    script = "import chainlite"
+    start = time.perf_counter()
+    result = subprocess.run(
+        [sys.executable, "-X", "importtime", "-c", script],
+        capture_output=True,
+        text=True,
+    )
+    elapsed = time.perf_counter() - start
+
+    # Check that the import was successful.
+    assert result.returncode == 0, f"Chainlite import failed: {result.stderr}"
+
+    # Set a threshold for the import time (e.g., 0.1 second).
+    threshold = 1
+    if elapsed >= threshold:
+        print("Import took too long. Breakdown of import times:")
+        print(result.stderr)
+        # Write the detailed trace to disk.
+        with open("chainlite_import_trace.log", "w") as f:
+            f.write(result.stderr)
+
+    assert (
+        elapsed < threshold
+    ), f"Importing chainlite took too long: {elapsed:.2f} seconds"
+    logger.info(f"Importing chainlite took {elapsed:.2f} seconds")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -51,6 +81,7 @@ def run_after_all_tests():
     assert (
         "test.prompt" not in prompt_logs
     ), "test.prompt is in the prompts_to_skip and therefore should not be logged"
+    logger.info(f"Total LLM cost: ${get_total_cost():.1f}")
 
 
 @pytest.mark.asyncio(scope="session")
@@ -238,7 +269,11 @@ async def test_run_async_in_parallel():
     max_concurrency = 5
     desc = "test"
     ret = await run_async_in_parallel(
-        async_function, test_inputs1, test_inputs2, max_concurrency=max_concurrency, desc=desc
+        async_function,
+        test_inputs1,
+        test_inputs2,
+        max_concurrency=max_concurrency,
+        desc=desc,
     )
     assert ret == list(test_inputs1)
 

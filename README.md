@@ -60,7 +60,6 @@ llm_generation_chain(
     force_skip_cache: bool = False,
     reasoning_effort: Optional[str] = None,
 ) # returns a LangChain chain the accepts inputs and returns a string as output
-load_config_from_file(config_file: str)
 pprint_chain() # can be used to print inputs or outputs of a LangChain chain.
 write_prompt_logs_to_file(log_file: Optional[str]) # writes all instructions, inputs and outputs of all your LLM API calls to a jsonl file. Good for debugging or collecting data using LLMs
 get_total_cost() # returns the total cost of all LLM API calls you have made. Resets each time you run your code.

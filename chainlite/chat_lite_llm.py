@@ -21,9 +21,9 @@ from typing import (
 
 import warnings
 from pydantic import PydanticDeprecatedSince20
+
 warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
 
-import litellm
 from langchain_core.callbacks import (
     AsyncCallbackManagerForLLMRun,
     CallbackManagerForLLMRun,
@@ -76,6 +76,8 @@ def _create_retry_decorator(
     ] = None,
 ) -> Callable[[Any], Any]:
     """Returns a tenacity retry decorator, preconfigured to handle PaLM exceptions"""
+    import litellm
+
     errors = [
         litellm.Timeout,
         litellm.APIError,
@@ -122,6 +124,8 @@ async def acompletion_with_retry(
 
     @retry_decorator
     async def _completion_with_retry(**kwargs: Any) -> Any:
+        import litellm
+
         return await litellm.acreate(**kwargs)
 
     return await _completion_with_retry(**kwargs)
@@ -252,6 +256,8 @@ class ChatLiteLLM(BaseChatModel):
 
         @retry_decorator
         def _completion_with_retry(**kwargs: Any) -> Any:
+            import litellm
+
             return litellm.completion(**kwargs)
 
         return _completion_with_retry(**kwargs)

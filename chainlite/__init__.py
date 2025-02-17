@@ -3,7 +3,7 @@ from langchain_core.runnables import Runnable, chain
 from chainlite.llm_config import (
     get_all_configured_engines,
     get_total_cost,
-    load_config_from_file,
+    initialize_llm_config,
 )
 from chainlite.llm_generate import llm_generation_chain, write_prompt_logs_to_file
 from chainlite.llm_output import (
@@ -19,7 +19,7 @@ from chainlite.utils import get_logger, pprint_chain, run_async_in_parallel
 __all__ = [
     "llm_generation_chain",
     "get_logger",
-    "load_config_from_file",
+    "initialize_llm_config",
     "pprint_chain",
     "write_prompt_logs_to_file",
     "get_total_cost",

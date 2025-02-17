@@ -56,7 +56,7 @@ async def run_async_in_parallel(
                                                    Defaults to 1.0 second.
 
     Returns:
-        list: A list of results obtained from executing async_function with the provided arguments. 
+        list: A list of results obtained from executing async_function with the provided arguments.
               If a task times out or raises an exception, the corresponding result is set to None.
 
     Raises:
