@@ -22,11 +22,13 @@ class ChainLogHandler(AsyncCallbackHandler):
         **kwargs: Any,
     ) -> Any:
         run_id = str(parent_run_id)
-        distillation_instruction = (
-            metadata["distillation_instruction"]
-            if metadata["distillation_instruction"]
-            else "<no distillation instruction is specified for this prompt>"
+
+        # find the first system message
+        system_message = next(
+            m for m in messages[0] if m.type == "system"
         )
+        distillation_instruction = system_message.content
+        
         llm_input = messages[0][-1].content
         if messages[0][-1].type == "system":
             # it means the prompt did not have an `# input` block, and only has an instruction block

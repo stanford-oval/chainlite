@@ -349,7 +349,7 @@ def llm_generation_chain(
         "prompt_format" in llm_resource and llm_resource["prompt_format"] == "distilled"
     )
 
-    prompt, distillation_instruction = load_fewshot_prompt_template(
+    prompt = load_fewshot_prompt_template(
         template_file,
         template_blocks,
         is_distilled=is_distilled,
@@ -485,7 +485,6 @@ def llm_generation_chain(
     return llm_generation_chain.with_config(
         callbacks=[ChainLogHandler()],
         metadata={
-            "distillation_instruction": distillation_instruction,
             "template_name": os.path.basename(template_file),
         },
     )  # for logging to file

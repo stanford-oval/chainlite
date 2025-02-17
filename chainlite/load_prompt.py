@@ -42,12 +42,13 @@ prompt_block_identifiers = {
         "# Ai\n",
         "# AI\n",
     ],
-    "instruction": ["# instruction\n", "# Instruction\n", "# INSTRUCTION\n"],
-    "distillation_instruction": [
-        "# distillation instruction\n",
-        "# distillation_instruction\n",
-        "# Distillation Instruction\n",
-        "# DISTILLATION INSTRUCTION\n",
+    "instruction": [
+        "# instruction\n",
+        "# Instruction\n",
+        "# INSTRUCTION\n",
+        "# System\n",
+        "# SYSTEM\n",
+        "# system\n",
     ],
 }
 
@@ -145,18 +146,14 @@ def _split_prompt_to_blocks(prompt: str) -> List[Tuple[str, str]]:
     assert (
         len([b for b in block_indices if b[1] == "instruction"]) <= 1
     ), "Prompts should contain at most one instruction block"
-    num_distillation_instruction = len(
-        [b for b in block_indices if b[1] == "distillation_instruction"]
-    )
-    assert (
-        num_distillation_instruction <= 1
-    ), "Prompts should contain at most one distillation instruction block"
+
     num_inputs = len([b for b in block_indices if b[1] == "input"])
     num_outputs = len([b for b in block_indices if b[1] == "output"])
-    fewshot_start = 1 if num_distillation_instruction == 0 else 2
+    fewshot_start = 1
     assert (num_inputs == num_outputs + 1) or (
         num_inputs == 0 and num_outputs == 0
     ), "The order of few-shot blocks in the prompt should be ((input -> output) * N) -> input"
+    print(block_indices)
     for i, b in enumerate(block_indices[fewshot_start:]):
         if i % 2 == 0:
             assert (
@@ -184,22 +181,13 @@ def _prompt_blocks_to_chat_messages(
     blocks: List[Tuple[str, str]], is_distilled: bool
 ) -> Tuple[ChatPromptTemplate, str | None]:
     message_prompt_templates = []
-    distillation_instruction = None
 
     # Add an instruction block if it is not present
     if len([b for b in blocks if b[0] == "instruction"]) == 0:
         blocks = [("instruction", "")] + blocks
 
-    if is_distilled:
-        assert "distillation_instruction" in [
-            b[0] for b in blocks
-        ], "When using a distilled model, prompts used need a distillation instruction block"
-
     for block_type, block in blocks:
-        if block_type == "distillation_instruction":
-            distillation_instruction = block
-            continue
-        elif block_type == "instruction":
+        if block_type == "instruction":
             block_type = SystemMessagePromptTemplate
         elif block_type == "input":
             block_type = HumanMessagePromptTemplate
@@ -211,38 +199,15 @@ def _prompt_blocks_to_chat_messages(
             block_type.from_template(block, template_format="jinja2")
         )
     if is_distilled:
-        # only keep the distillation_instruction and the last input
-        assert distillation_instruction is not None
+        # only keep the system message and the last input
         message_prompt_templates = [
-            SystemMessagePromptTemplate.from_template(
-                distillation_instruction, template_format="jinja2"
-            ),
+            message_prompt_templates[0],
             message_prompt_templates[-1],
         ]
     chat_prompt_template = ChatPromptTemplate.from_messages(message_prompt_templates)
     chat_prompt_template = add_constants_to_template(chat_prompt_template)
-    if distillation_instruction is None:
-        # if distillation instruction is not provided, will default to instruction
-        block_type, distillation_instruction = tuple(
-            [b for b in blocks if b[0] == "instruction"][0]
-        )
-        assert block_type == "instruction"
 
-    distillation_instruction = (
-        (
-            add_constants_to_template(
-                ChatPromptTemplate.from_template(
-                    distillation_instruction, template_format="jinja2"
-                )
-            )
-        )
-        .invoke({})
-        .messages[0]
-        .content
-    )  # distillation prompts should not contain any variables other than template constants like {{today}}
-    # print("distillation_instruction = ", distillation_instruction)
-
-    return chat_prompt_template, distillation_instruction
+    return chat_prompt_template
 
 
 def load_fewshot_prompt_template(
@@ -254,8 +219,8 @@ def load_fewshot_prompt_template(
     if not template_blocks:
         fp = load_template_file(template_file, keep_indentation)
         template_blocks = _split_prompt_to_blocks(fp)
-    chat_prompt_template, distillation_instruction = _prompt_blocks_to_chat_messages(
+    chat_prompt_template = _prompt_blocks_to_chat_messages(
         template_blocks, is_distilled
     )
 
-    return chat_prompt_template, distillation_instruction
+    return chat_prompt_template

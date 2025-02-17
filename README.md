@@ -74,9 +74,6 @@ get_total_cost() # returns the total cost of all LLM API calls you have made. Re
 Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.
 {# This is a comment, and will be ignored anywhere in a .prompt file. Other than block definitions and comments, '#' is allowed and is treated as a normal character.  #}
 
-# distillation instruction
-Tell a joke.
-
 # input
 Physics
 

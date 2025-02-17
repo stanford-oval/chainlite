@@ -83,6 +83,27 @@ def run_after_all_tests():
     ), "test.prompt is in the prompts_to_skip and therefore should not be logged"
     logger.info(f"Total LLM cost: ${get_total_cost():.1f}")
 
+@pytest.mark.asyncio(scope="session")
+async def test_instruction_with_variable():
+    # Test a prompt where the instruction block contains a variable.
+    template_blocks = [
+        (
+            "instruction",
+            "You are a chatbot named {{ name }}."
+        ),
+        ("input", "{{ message }}"),
+    ]
+    # Invoke the chain with variables to be interpolated.
+    variables = {"name": "ChainLite", "message": "what is your name?"}
+    response = await llm_generation_chain(
+        template_file="",
+        template_blocks=template_blocks,
+        engine=test_engine,
+        max_tokens=50,
+        temperature=0,
+    ).ainvoke(variables)
+
+    assert "chainlite" in response.lower()
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():

@@ -230,7 +230,7 @@ class ChatLiteLLM(BaseChatModel):
     top_k: Optional[int] = None
     max_tokens: Optional[int] = None
     template_file: Optional[str] = None
-    distillation_instructions: Optional[str] = None
+    instruction: Optional[str] = None
 
     max_retries: int = 6
 
@@ -446,7 +446,7 @@ class ChatLiteLLM(BaseChatModel):
 
         prompt_log = {
             "template_name": self.template_name,
-            "instruction": self.distillation_instruction,
+            "instruction": self.instruction,
             "input": llm_input,
         }
 
