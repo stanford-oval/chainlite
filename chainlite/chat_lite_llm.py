@@ -223,6 +223,7 @@ class ChatLiteLLM(BaseChatModel):
     model: str = ""
     api_key: Optional[str] = None
     api_base: Optional[str] = None
+    api_version: Optional[str] = None
     streaming: bool = False
     temperature: Optional[float] = 0
     model_kwargs: Dict[str, Any] = Field(default_factory=dict)
@@ -245,6 +246,7 @@ class ChatLiteLLM(BaseChatModel):
             "model": self.model,
             "api_base": self.api_base,
             "api_key": self.api_key,
+            "api_version": self.api_version,
             **self.model_kwargs,
         }
 

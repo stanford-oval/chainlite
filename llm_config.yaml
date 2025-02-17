@@ -23,14 +23,17 @@ prompt_logging:
 llm_endpoints:
   # Example configuration for OpenAI models via Azure API
   - api_base: https://ovalopenairesource.openai.azure.com  # Base URL for Azure OpenAI API
-    api_version: 2024-08-01-preview  # API version for Azure OpenAI
+    api_version: 2025-01-01-preview  # API version for Azure OpenAI
     api_key: AZURE_OPENAI_API_KEY_TEST  # API key for Azure OpenAI
     engine_map:  # Mapping of model names to Azure deployment identifiers prepended by "azure/"
-      gpt-35-turbo: azure/gpt-35-turbo
-      gpt-35-turbo-16k: azure/gpt-35-turbo-16k
-      gpt-35-turbo-instruct: azure_text/gpt-35-turbo-instruct
       gpt-4o-azure: azure/gpt-4o-global
-      gpt-4-32k: azure/gpt-4-32k
+
+  - api_base: https://ovaleastus.openai.azure.com
+    api_version: 2025-01-01-preview  # API version for Azure OpenAI
+    api_key: AZURE_OPENAI_API_KEY_TEST_2  # API key for Azure OpenAI
+    engine_map:
+      o1-azure: azure/o1-2024-12-17
+      o3-mini-azure: azure/o3-mini
 
 # Example of OpenAI models via openai.com
   - api_base: https://api.openai.com/v1

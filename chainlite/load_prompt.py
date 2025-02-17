@@ -153,7 +153,6 @@ def _split_prompt_to_blocks(prompt: str) -> List[Tuple[str, str]]:
     assert (num_inputs == num_outputs + 1) or (
         num_inputs == 0 and num_outputs == 0
     ), "The order of few-shot blocks in the prompt should be ((input -> output) * N) -> input"
-    print(block_indices)
     for i, b in enumerate(block_indices[fewshot_start:]):
         if i % 2 == 0:
             assert (

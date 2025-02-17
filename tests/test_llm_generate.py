@@ -232,7 +232,7 @@ async def test_cached_batching():
 
 
 @pytest.mark.asyncio(scope="session")
-@pytest.mark.parametrize("engine", ["o1", "o3-mini"])
+@pytest.mark.parametrize("engine", ["o1", "o3-mini", "o3-mini-azure"])
 async def test_reasoning_models(engine):
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
