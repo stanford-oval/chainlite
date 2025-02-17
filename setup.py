@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="chainlite",
-    version="0.3.8",
+    version="0.3.9",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -31,6 +31,7 @@ setup(
             "twine",  # for uploading to PyPI
             "isort",  # for code formatting
             "black",  # for code formatting
+            "tuna", # for measuring import time
         ],
     },
     classifiers=[
