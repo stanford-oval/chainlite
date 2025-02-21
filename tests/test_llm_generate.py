@@ -26,13 +26,6 @@ import pytest
 logger = get_logger(__name__)
 
 
-chain_inputs = [
-    {"topic": "Ice cream"},
-    {"topic": "Cats"},
-    {"topic": "Dogs"},
-    {"topic": "Rabbits"},
-]
-
 test_engine = "gpt-4o-openai"
 
 
@@ -83,14 +76,12 @@ def run_after_all_tests():
     ), "test.prompt is in the prompts_to_skip and therefore should not be logged"
     logger.info(f"Total LLM cost: ${get_total_cost():.1f}")
 
+
 @pytest.mark.asyncio(scope="session")
 async def test_instruction_with_variable():
     # Test a prompt where the instruction block contains a variable.
     template_blocks = [
-        (
-            "instruction",
-            "You are a chatbot named {{ name }}."
-        ),
+        ("instruction", "You are a chatbot named {{ name }}."),
         ("input", "{{ message }}"),
     ]
     # Invoke the chain with variables to be interpolated.
@@ -104,6 +95,7 @@ async def test_instruction_with_variable():
     ).ainvoke(variables)
 
     assert "chainlite" in response.lower()
+
 
 @pytest.mark.asyncio(scope="session")
 async def test_llm_generate():
@@ -200,6 +192,12 @@ async def test_constants():
 
 @pytest.mark.asyncio(scope="session")
 async def test_batching():
+    chain_inputs = [
+        {"topic": "Ice cream"},
+        {"topic": "Cats"},
+        {"topic": "Dogs"},
+        {"topic": "Rabbits"},
+    ]
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
         engine=test_engine,

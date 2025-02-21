@@ -14,7 +14,7 @@ SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7
 
 
 class CustomAsyncRedisCache(AsyncRedisCache):
-    """This class fixes langchain 0.2.*'s cache issue with LiteLLM
+    """This class fixes langchain>=0.2.*'s cache issue with LiteLLM
     The core of the problem is that LiteLLM's `Usage`, `ChatCompletionMessageToolCall` and `ChatCompletionTokenLogprob` 
         classes should inherit from LangChain's Serializable class, but don't.
     This class is the minimal fix to make it work.

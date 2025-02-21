@@ -52,6 +52,7 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(run_id)
         if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
+            
             if (
                 isinstance(response, tuple)
                 and len(response) == 2
@@ -59,6 +60,10 @@ class ChainLogHandler(AsyncCallbackHandler):
             ):
                 response = list(response)
                 response[1] = str(response[1])
+            elif isinstance(response, tuple) and len(response) == 2 and isinstance(response[1], list):
+                # the second element of the tuple is a list of ChatCompletionTokenLogprob (or its converted dict)
+                response = response[0]
+
             elif isinstance(response, ToolOutput):
                 response = str(response)
             if isinstance(response, tuple) and len(response) == 2:
