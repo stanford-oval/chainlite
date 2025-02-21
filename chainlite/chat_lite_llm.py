@@ -425,12 +425,15 @@ class ChatLiteLLM(BaseChatModel):
 
     @property
     def _identifying_params(self) -> Dict[str, Any]:
-        """Get the identifying parameters."""
+        """Get the identifying parameters.
+        These are used as the cache key for LLM calls."""
         return {
             "model": self.model,
             "temperature": self.temperature,
             "top_p": self.top_p,
             "top_k": self.top_k,
+            "reasoning_effort": self.model_kwargs.get("reasoning_effort"),
+            "max_tokens": self.max_tokens,
         }
 
     @property

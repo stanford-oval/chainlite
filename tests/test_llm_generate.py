@@ -279,6 +279,66 @@ async def test_cache():
 
 
 @pytest.mark.asyncio(scope="session")
+@pytest.mark.parametrize("engine", ["o3-mini", "o3-mini-azure"])
+async def test_reasoning_effort_cache(engine: str):
+    c1 = llm_generation_chain(
+        template_file="tests/copy.prompt",
+        engine=engine,
+        max_tokens=1000,
+        temperature=0.0,
+        reasoning_effort="low",
+    )
+
+    c2 = llm_generation_chain(
+        template_file="tests/copy.prompt",
+        engine=engine,
+        max_tokens=1000,
+        temperature=0.0,
+        reasoning_effort="medium",
+    )
+    # use random input so that the first call is not cached
+    start_time = time.time()
+    random_input = "".join(random.choices(string.ascii_letters + string.digits, k=20))
+    response1 = await c1.ainvoke({"input": random_input})
+    first_time = time.time() - start_time
+    first_cost = get_total_cost()
+
+    print("First call took {:.2f} seconds".format(first_time))
+    print("Total cost after first call: ${:.10f}".format(first_cost))
+
+    start_time = time.time()
+    response2 = await c2.ainvoke({"input": random_input})
+    second_time = time.time() - start_time
+    print("Second call took {:.2f} seconds".format(second_time))
+    second_cost = get_total_cost()
+    print("Total cost after second call: ${:.10f}".format(second_cost))
+
+    assert response1 == response2
+    assert (
+        second_time > first_time * 0.5
+    ), "The different reasoning efforts should not be cached"
+    assert first_cost > 0, "The cost should be greater than 0"
+    assert (
+        second_cost > first_cost
+    ), "The cost should increase after a different reasoning effort LLM call"
+
+    # another call to c1 should be cached
+    start_time = time.time()
+    response3 = await c1.ainvoke({"input": random_input})
+    third_time = time.time() - start_time
+    third_cost = get_total_cost()
+    print("Third call took {:.2f} seconds".format(third_time))
+    print("Total cost after third call: ${:.10f}".format(third_cost))
+    assert response1 == response3
+    assert (
+        third_time < first_time * 0.5
+    ), "The third (cached) LLM call should be much faster than the first call"
+    assert (
+        third_cost == second_cost
+    ), "The cost should not change after a cached LLM call"
+
+
+@pytest.mark.asyncio(scope="session")
 async def test_run_async_in_parallel():
 
     async def async_function(i, j):
