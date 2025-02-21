@@ -34,7 +34,6 @@ from langchain_core.language_models.chat_models import (
     agenerate_from_stream,
     generate_from_stream,
 )
-from langchain_core.language_models.llms import create_base_retry_decorator
 from langchain_core.messages import (
     AIMessage,
     AIMessageChunk,
@@ -59,6 +58,14 @@ from langchain_core.utils import pre_init
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel, Field
 
+from tenacity import (
+    retry,
+    retry_base,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from chainlite.llm_config import GlobalVars
 from chainlite.llm_output import ToolOutput
 
@@ -69,13 +76,8 @@ class ChatLiteLLMException(Exception):
     """Error with the `LiteLLM I/O` library"""
 
 
-def _create_retry_decorator(
-    llm: ChatLiteLLM,
-    run_manager: Optional[
-        Union[AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun]
-    ] = None,
-) -> Callable[[Any], Any]:
-    """Returns a tenacity retry decorator, preconfigured to handle PaLM exceptions"""
+def _create_retry_decorator(llm) -> Callable[[Any], Any]:
+    """Returns a tenacity retry decorator, configured to handle LLM exceptions"""
     import litellm
 
     errors = [
@@ -84,8 +86,15 @@ def _create_retry_decorator(
         litellm.APIConnectionError,
         litellm.RateLimitError,
     ]
-    return create_base_retry_decorator(
-        error_types=errors, max_retries=llm.max_retries, run_manager=run_manager
+    retry_instance: retry_base = retry_if_exception_type(errors[0])
+    for error in errors[1:]:
+        retry_instance = retry_instance | retry_if_exception_type(error)
+    return retry(
+        # reraise=True,
+        stop=stop_after_attempt(llm.max_retries),
+        wait=wait_exponential(multiplier=1, min=4, max=20),
+        retry=retry_instance,
+        # before_sleep=_before_sleep,
     )
 
 
@@ -120,7 +129,7 @@ async def acompletion_with_retry(
     **kwargs: Any,
 ) -> Any:
     """Use tenacity to retry the async completion call."""
-    retry_decorator = _create_retry_decorator(llm, run_manager=run_manager)
+    retry_decorator = _create_retry_decorator(llm)
 
     @retry_decorator
     async def _completion_with_retry(**kwargs: Any) -> Any:
