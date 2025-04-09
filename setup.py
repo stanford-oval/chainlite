@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="chainlite",
-    version="0.4.3",
+    version="0.4.4",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -12,7 +12,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tqdm",
-        "langchain>=0.3",
+        "langchain>=0.3.18",
         "langchain-community>=0.3",
         "langgraph>=0.2",
         "litellm==1.65.4.post1",  # the unified interface to LLM APIs
