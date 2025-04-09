@@ -116,64 +116,6 @@ def is_dict(obj):
     return isinstance(obj, dict)
 
 
-def _ensure_strict_json_schema(
-    json_schema: object,
-    path: tuple[str, ...],
-) -> dict[str, Any]:
-    """Mutates the given JSON schema to ensure it conforms to the `strict` standard
-    that the API expects.
-
-    Adapted from OpenAI's Python client code
-    """
-    if not is_dict(json_schema):
-        raise TypeError(f"Expected {json_schema} to be a dictionary; path={path}")
-
-    typ = json_schema.get("type")
-    if typ == "object" and "additionalProperties" not in json_schema:
-        json_schema["additionalProperties"] = False
-
-    # object types
-    # { 'type': 'object', 'properties': { 'a':  {...} } }
-    properties = json_schema.get("properties")
-    if is_dict(properties):
-        json_schema["required"] = [prop for prop in properties.keys()]
-        json_schema["properties"] = {
-            key: _ensure_strict_json_schema(
-                prop_schema, path=(*path, "properties", key)
-            )
-            for key, prop_schema in properties.items()
-        }
-
-    # arrays
-    # { 'type': 'array', 'items': {...} }
-    items = json_schema.get("items")
-    if is_dict(items):
-        json_schema["items"] = _ensure_strict_json_schema(items, path=(*path, "items"))
-
-    # unions
-    any_of = json_schema.get("anyOf")
-    if is_list(any_of):
-        json_schema["anyOf"] = [
-            _ensure_strict_json_schema(variant, path=(*path, "anyOf", str(i)))
-            for i, variant in enumerate(any_of)
-        ]
-
-    # intersections
-    all_of = json_schema.get("allOf")
-    if is_list(all_of):
-        json_schema["allOf"] = [
-            _ensure_strict_json_schema(entry, path=(*path, "anyOf", str(i)))
-            for i, entry in enumerate(all_of)
-        ]
-
-    defs = json_schema.get("$defs")
-    if is_dict(defs):
-        for def_name, def_schema in defs.items():
-            _ensure_strict_json_schema(def_schema, path=(*path, "$defs", def_name))
-
-    return json_schema
-
-
 @chain
 async def return_response_and_tool(
     llm_output, tools: list[Callable], force_tool_calling: bool
@@ -362,16 +304,7 @@ def llm_generation_chain(
         if output_json:
             structured_model_kwargs["response_format"] = {"type": "json_object"}
         elif pydantic_class:
-            structured_model_kwargs["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "schema": _ensure_strict_json_schema(
-                        pydantic_class.model_json_schema(), path=()
-                    ),
-                    "name": pydantic_class.__name__,
-                    "strict": True,
-                },
-            }
+            structured_model_kwargs["response_format"] = pydantic_class
         structure_output_resource = pick_llm_resource(engine_for_structured_output)
         structured_output_llm = ChatLiteLLM(
             model=structure_output_resource["engine_map"][engine_for_structured_output],
@@ -402,16 +335,7 @@ def llm_generation_chain(
         if output_json:
             model_kwargs["response_format"] = {"type": "json_object"}
         elif pydantic_class:
-            model_kwargs["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "schema": _ensure_strict_json_schema(
-                        pydantic_class.model_json_schema(), path=()
-                    ),
-                    "name": pydantic_class.__name__,
-                    "strict": True,
-                },
-            }
+            model_kwargs["response_format"] = pydantic_class
 
     if return_top_logprobs > 0:
         model_kwargs["logprobs"] = True
