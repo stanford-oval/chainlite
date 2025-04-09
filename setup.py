@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="chainlite",
-    version="0.4.2",
+    version="0.4.3",
     author="Sina Semnani",
     author_email="sinaj@cs.stanford.edu",
     description="A Python package that uses LangChain and LiteLLM to call large language model APIs easily",
@@ -15,7 +15,7 @@ setup(
         "langchain>=0.3",
         "langchain-community>=0.3",
         "langgraph>=0.2",
-        "litellm==1.61.7", # the unified interface to LLM APIs
+        "litellm==1.65.4.post1",  # the unified interface to LLM APIs
         "numpydoc",  # needed for function calling with LiteLLM
         "grandalf",  # to visualize LangGraph graphs
         "pydantic>=2.5",
@@ -31,7 +31,7 @@ setup(
             "twine",  # for uploading to PyPI
             "isort",  # for code formatting
             "black",  # for code formatting
-            "tuna", # for measuring import time
+            "tuna",  # for measuring import time
         ],
     },
     classifiers=[

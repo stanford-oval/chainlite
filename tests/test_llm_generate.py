@@ -221,9 +221,10 @@ async def test_cached_batching():
     first_cost = get_total_cost()
     start_time = time.time()
     response = await c.abatch([{"topic": "Ice cream"}] * 200)
+    elapsed_time = time.time() - start_time
     assert (
-        time.time() - start_time < 1
-    ), "The batched LLM calls should be cached and therefore very fast"
+        elapsed_time < 1
+    ), f"The batched LLM calls should be cached and therefore very fast, but took {elapsed_time:.2f} seconds"
     assert (
         get_total_cost() == first_cost
     ), "The cost should not change after a cached batched LLM call"

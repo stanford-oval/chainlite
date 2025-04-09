@@ -24,11 +24,13 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(parent_run_id)
 
         # find the first system message
-        system_message = next(
-            m for m in messages[0] if m.type == "system"
-        )
-        distillation_instruction = system_message.content
-        
+        system_message = [m for m in messages[0] if m.type == "system"]
+        if len(system_message) == 0:
+            # no system message
+            distillation_instruction = ""
+        else:
+            distillation_instruction = system_message[0].content
+
         llm_input = messages[0][-1].content
         if messages[0][-1].type == "system":
             # it means the prompt did not have an `# input` block, and only has an instruction block
@@ -52,7 +54,7 @@ class ChainLogHandler(AsyncCallbackHandler):
         run_id = str(run_id)
         if run_id in GlobalVars.prompt_logs:
             # this is the final response in the entire chain
-            
+
             if (
                 isinstance(response, tuple)
                 and len(response) == 2
@@ -60,7 +62,11 @@ class ChainLogHandler(AsyncCallbackHandler):
             ):
                 response = list(response)
                 response[1] = str(response[1])
-            elif isinstance(response, tuple) and len(response) == 2 and isinstance(response[1], list):
+            elif (
+                isinstance(response, tuple)
+                and len(response) == 2
+                and isinstance(response[1], list)
+            ):
                 # the second element of the tuple is a list of ChatCompletionTokenLogprob (or its converted dict)
                 response = response[0]
 
