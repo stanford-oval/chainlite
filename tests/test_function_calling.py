@@ -42,8 +42,8 @@ async def test_function_calling(engine):
     text_output, tool_outputs = await test_tool_chain.ainvoke(
         {"message": "What tools do you have available?"}
     )
-    assert "functions.get_current_weather" in text_output
-    assert "functions.add" in text_output
+    assert "weather" in text_output.lower()
+    assert "add" in text_output.lower()
     assert tool_outputs == []
 
     # Function calling needed

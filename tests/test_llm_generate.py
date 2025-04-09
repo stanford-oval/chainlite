@@ -236,7 +236,7 @@ async def test_reasoning_models(engine):
     response = await llm_generation_chain(
         template_file="tests/joke.prompt",
         engine=engine,
-        max_tokens=1000,
+        max_tokens=2000,
         temperature=0.01,
     ).ainvoke({"topic": "A strawberry."})
     assert response
