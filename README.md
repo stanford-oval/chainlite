@@ -87,7 +87,7 @@ Because they make up everything!
 
 `main.py`:
 ```python
-from chainlite import load_config_file
+from chainlite import load_config_from_file, llm_generation_chain, write_prompt_logs_to_file
 load_config_file("./chainlite_config.yaml")
 
 async def tell_joke(topic: str):
@@ -98,6 +98,7 @@ async def tell_joke(topic: str):
     ).ainvoke({"topic": topic})
     print(response)
 
+import asyncio
 asyncio.run(tell_joke("Life as a PhD student")) # prints "Why did the PhD student bring a ladder to the library?\nTo take their research to the next level!"
 write_prompt_logs_to_file("llm_input_outputs.jsonl")
 ```
