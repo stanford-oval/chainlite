@@ -121,6 +121,21 @@ async def test_llm_generate():
     assert len(response) > 0, "The response should not be empty"
 
 
+def test_synchronous_llm_generate():
+    """Test synchronous llm_generation_chain by calling invoke()."""
+    response = llm_generation_chain(
+        template_file="test.prompt",  # prompt path relative to one of the paths specified in `prompt_dirs`
+        engine=test_engine,
+        max_tokens=100,
+        force_skip_cache=True,
+    ).invoke({})
+    # logger.info(response)
+
+    assert response is not None, "The response should not be None"
+    assert isinstance(response, str), "The response should be a string"
+    assert len(response) > 0, "The response should not be empty"
+
+
 @pytest.mark.asyncio(scope="session")
 async def test_string_prompts():
     response = await llm_generation_chain(
@@ -206,6 +221,27 @@ async def test_batching():
         progress_bar_desc="test2",
     ).abatch(chain_inputs)
     assert len(response) == len(chain_inputs)
+
+
+def test_synchronous_batching():
+    """Test synchronous llm_generation_chain by calling batch()."""
+    chain_inputs = [
+        {"topic": "Large Language Models"},
+        {"topic": "Quantum Computing"},
+        {"topic": "Synthetic Biology"},
+        {"topic": "Dark Matter"},
+    ]
+    responses = llm_generation_chain(
+        template_file="tests/joke.prompt",
+        engine=test_engine,
+        max_tokens=10, # Small max_tokens for faster test execution
+        temperature=0.1,
+        progress_bar_desc="test_sync_batch",
+    ).batch(chain_inputs)
+    assert len(responses) == len(chain_inputs)
+    for response in responses:
+        assert isinstance(response, str), "Each response should be a string"
+        assert len(response) > 0, "Each response should not be empty"
 
 
 @pytest.mark.asyncio(scope="session")

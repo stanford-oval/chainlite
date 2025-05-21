@@ -59,7 +59,7 @@ llm_generation_chain(
     bind_prompt_values: Optional[dict] = None,
     force_skip_cache: bool = False,
     reasoning_effort: Optional[str] = None,
-) # returns a LangChain chain the accepts inputs and returns a string as output
+) # returns a LangChain chain that accepts inputs and returns a string as output. The chain has `invoke`, `ainvoke`, `batch`, and `abatch` methods for single synchronous, single asynchronous, batch synchronous, and batch asynchronous calls, respectively.
 pprint_chain() # can be used to print inputs or outputs of a LangChain chain.
 write_prompt_logs_to_file(log_file: Optional[str]) # writes all instructions, inputs and outputs of all your LLM API calls to a jsonl file. Good for debugging or collecting data using LLMs
 get_total_cost() # returns the total cost of all LLM API calls you have made. Resets each time you run your code.
@@ -103,9 +103,40 @@ asyncio.run(tell_joke("Life as a PhD student")) # prints "Why did the PhD studen
 write_prompt_logs_to_file("llm_input_outputs.jsonl")
 ```
 
-Then you will have `llm_input_outputs.jsonl`:
+The chain returned by `llm_generation_chain` also supports synchronous execution.
+For a single input, you can use the `invoke` method (instead of `ainvoke` used in the async example above):
+```python
+# Synchronous example for a single input
+response = llm_generation_chain(
+    template_file="joke.prompt",
+    engine="gpt-35-turbo",
+    max_tokens=100,
+).invoke({"topic": "Synchronous Programming"})
+print(response)
+```
+
+For multiple inputs (batch processing), you can use the `batch` method for synchronous execution or `abatch` for asynchronous execution.
+```python
+# Synchronous batch example
+chain_inputs = [
+    {"topic": "Topic 1"},
+    {"topic": "Topic 2"},
+]
+responses = llm_generation_chain(
+    template_file="joke.prompt",
+    engine="gpt-35-turbo",
+    max_tokens=100,
+).batch(chain_inputs)
+for r in responses:
+    print(r)
+```
+
+Then you will have `llm_input_outputs.jsonl` (assuming the example above was run):
 ```json
 {"template_name": "joke.prompt", "instruction": "Tell a joke.", "input": "Life as a PhD student", "output": "Why did the PhD student bring a ladder to the library?\nTo take their research to the next level!"}
+{"template_name": "joke.prompt", "instruction": "Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.", "input": "Synchronous Programming", "output": "Why did the synchronous function break up with the asynchronous function?\nBecause it needed more space!"}
+{"template_name": "joke.prompt", "instruction": "Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.", "input": "Topic 1", "output": "Why did Topic 1 get promoted?\nBecause it was outstanding in its field!"}
+{"template_name": "joke.prompt", "instruction": "Tell a joke about the input topic. The format of the joke should be a question and response, separated by a line break.", "input": "Topic 2", "output": "What did Topic 2 say to Topic 1?\nNothing, they were on different wavelengths."}
 ```
 
 For more examples, see `tests/test_llm_generate.py`
